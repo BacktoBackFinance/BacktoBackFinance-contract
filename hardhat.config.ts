@@ -52,7 +52,7 @@ const config: HardhatUserConfig = {
   solidity: {
     compilers: [
       {
-        version: "0.8.19",
+        version: "0.8.9",
         settings: {
           metadata: {
             bytecodeHash: "ipfs",
