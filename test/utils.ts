@@ -16,7 +16,7 @@ const { provider, BigNumber } = ethers;
 
 export const ONE_DAY_IN_SECS = 24 * 60 * 60;
 
-export async function deployStakingPoolContractsFixture() {
+export async function deployPoolContractsFixture() {
   const  [Alice, Bob, Caro, Dave]  = await ethers.getSigners();
 
   const MockUSDC = await ethers.getContractFactory('MockUSDC');
@@ -43,11 +43,9 @@ export async function deployStakingPoolContractsFixture() {
   const BackedVaultContract = await BackedVault.deploy();
   const backedVault = BackedVault__factory.connect(BackedVaultContract.address, provider);
 
-
   const BackedSwap = await ethers.getContractFactory('BackedSwap');
   const BackedSwapContract = await BackedSwap.deploy();
   const backedSwap  = BackedSwap__factory.connect(BackedSwapContract.address, provider);
-
 
   return { mockUSDC,  mockIB01, sanctionsListMock, backedOracle, backedFactory, backedSwap, backedVault, Alice, Bob, Caro, Dave };
 }
