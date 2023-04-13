@@ -1,5 +1,10 @@
 {
-  "name": "hardhat-project",
+  "name": "BacktoBackFinance-contract",
+  "scripts": {
+    "build": "hardhat compile",
+    "deploy:mainnet": "npx hardhat --network mainnet deploy",
+    "deploy:hardhat": "npx hardhat --network hardhat deploy"
+  },
   "devDependencies": {
     "@ethersproject/abi": "^5.4.7",
     "@ethersproject/providers": "^5.4.7",
