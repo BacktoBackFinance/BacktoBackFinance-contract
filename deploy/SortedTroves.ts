@@ -13,7 +13,7 @@ const deployFunction: DeployFunction = async function ({
 
   const contract = await ethers.getContractAt('SortedTroves', (await deployments.get('SortedTroves')).address);
   if ((await contract.owner()) === deployer) {
-    const size = 100;
+    const size = ethers.constants.MaxUint256;
     const troveManagerAddress = (await deployments.get('TroveManager')).address;
     const borrowerOperationsAddress = (await deployments.get('BorrowerOperations')).address;
     const tx = await contract.setParams(size, troveManagerAddress, borrowerOperationsAddress);

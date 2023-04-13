@@ -4,12 +4,14 @@ import { HardhatRuntimeEnvironment } from 'hardhat/types';
 const deployFunction: DeployFunction = async function ({ deployments, getNamedAccounts }: HardhatRuntimeEnvironment) {
   const { deploy } = deployments;
   const { deployer } = await getNamedAccounts();
-  const { address } = await deploy('BorrowerOperations', { from: deployer });
-  console.log('BorrowerOperations deployed at', address);
+  const decimals = 18;
+  const description = 'BackedOracle';
+  const { address } = await deploy('BackedOracle', { from: deployer, args: [decimals, description] });
+  console.log('BackedOracle deployed at', address);
 };
 
 export default deployFunction;
 
-deployFunction.dependencies = ['TroveManager'];
+deployFunction.dependencies = [];
 
-deployFunction.tags = ['BorrowerOperations'];
+deployFunction.tags = ['BackedOracle'];
