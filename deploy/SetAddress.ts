@@ -113,6 +113,48 @@ const deployFunction: DeployFunction = async function ({
     );
     await tx.wait();
   }
+
+  const communityIssuanceContract = await ethers.getContractAt(
+    'CommunityIssuance',
+    (
+      await deployments.get('CommunityIssuance')
+    ).address
+  );
+  if ((await communityIssuanceContract.owner()) === deployer) {
+    const lqtyTokenAddress = (await deployments.get('LQTYToken')).address;
+    const stabilityPoolAddress = (await deployments.get('StabilityPool')).address;
+    const tx = await communityIssuanceContract.setAddresses(lqtyTokenAddress, stabilityPoolAddress);
+    await tx.wait();
+  }
+
+  const lockupContractFactoryContract = await ethers.getContractAt(
+    'LockupContractFactory',
+    (
+      await deployments.get('LockupContractFactory')
+    ).address
+  );
+  if ((await lockupContractFactoryContract.owner()) === deployer) {
+    const lqtyTokenAddress = (await deployments.get('LQTYToken')).address;
+    const tx = await lockupContractFactoryContract.setLQTYTokenAddress(lqtyTokenAddress);
+    await tx.wait();
+  }
+
+  const LQTYStakingContract = await ethers.getContractAt('LQTYStaking', (await deployments.get('LQTYStaking')).address);
+  if ((await LQTYStakingContract.owner()) === deployer) {
+    const lqtyTokenAddress = (await deployments.get('LQTYToken')).address;
+    const lusdTokenAddress = (await deployments.get('LUSDToken')).address;
+    const troveManagerAddress = (await deployments.get('TroveManager')).address;
+    const borrowerOperationsAddress = (await deployments.get('BorrowerOperations')).address;
+    const activePoolAddress = (await deployments.get('ActivePool')).address;
+    const tx = await LQTYStakingContract.setAddresses(
+      lqtyTokenAddress,
+      lusdTokenAddress,
+      troveManagerAddress,
+      borrowerOperationsAddress,
+      activePoolAddress
+    );
+    await tx.wait();
+  }
 };
 
 export default deployFunction;

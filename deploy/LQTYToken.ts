@@ -1,11 +1,7 @@
 import { DeployFunction } from 'hardhat-deploy/types';
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
 
-const deployFunction: DeployFunction = async function ({
-  deployments,
-  ethers,
-  getNamedAccounts,
-}: HardhatRuntimeEnvironment) {
+const deployFunction: DeployFunction = async function ({ deployments, getNamedAccounts }: HardhatRuntimeEnvironment) {
   const { deploy } = deployments;
   const { deployer } = await getNamedAccounts();
   const communityIssuanceAddress = (await deployments.get('CommunityIssuance')).address;
