@@ -21,7 +21,7 @@ const deployFunction: DeployFunction = async function ({ deployments, getNamedAc
       },
     },
   });
-  console.log('BackedVault deployed at', address);
+  console.log('BackedToken deployed at', address);
 };
 
 export default deployFunction;

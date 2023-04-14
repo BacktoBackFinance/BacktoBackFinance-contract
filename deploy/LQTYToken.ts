@@ -10,7 +10,6 @@ const deployFunction: DeployFunction = async function ({ deployments, getNamedAc
   const bountyAddress = '0x0000000000000000000000000000000000000001';
   const lpRewardsAddress = '0x0000000000000000000000000000000000000002';
   const multisigAddress = '0x0000000000000000000000000000000000000003';
-
   const { address } = await deploy('LQTYToken', {
     from: deployer,
     args: [

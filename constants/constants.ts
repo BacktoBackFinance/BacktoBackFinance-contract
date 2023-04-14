@@ -1,0 +1,11 @@
+export enum CHAINID {
+  MAINNET = 1,
+}
+
+export const USDC_ADDRESS = {
+  [CHAINID.MAINNET]: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
+};
+
+export const BACKED_TOKEN_ADDRESS = {
+  [CHAINID.MAINNET]: '0xCA30c93B02514f86d5C86a6e375E3A330B435Fb5',
+};
