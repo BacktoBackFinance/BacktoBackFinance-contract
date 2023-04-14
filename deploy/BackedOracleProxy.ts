@@ -4,12 +4,13 @@ import { HardhatRuntimeEnvironment } from 'hardhat/types';
 const deployFunction: DeployFunction = async function ({ deployments, getNamedAccounts }: HardhatRuntimeEnvironment) {
   const { deploy } = deployments;
   const { deployer } = await getNamedAccounts();
-  const { address } = await deploy('StabilityPool', { from: deployer });
-  console.log('StabilityPool deployed at', address);
+  const backedOracleAddress = (await deployments.get('BackedOracle')).address;
+  const { address } = await deploy('BackedOracleProxy', { from: deployer, args: [backedOracleAddress] });
+  console.log('BackedOracleProxy deployed at', address);
 };
 
 export default deployFunction;
 
-deployFunction.dependencies = [];
+deployFunction.dependencies = ['BackedOracle'];
 
-deployFunction.tags = ['StabilityPool'];
+deployFunction.tags = ['BackedOracleProxy'];
