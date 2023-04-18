@@ -16,7 +16,13 @@ const deployFunction: DeployFunction = async function ({
     const borrowerOperationsAddress = (await deployments.get('BorrowerOperations')).address;
     const troveManagerAddress = (await deployments.get('TroveManager')).address;
     const activePoolAddress = (await deployments.get('ActivePool')).address;
-    const tx = await contract.setAddresses(borrowerOperationsAddress, troveManagerAddress, activePoolAddress);
+    const backedTokenAddress = (await deployments.get('BackedToken')).address;
+    const tx = await contract.setAddresses(
+      borrowerOperationsAddress,
+      troveManagerAddress,
+      activePoolAddress,
+      backedTokenAddress
+    );
     await tx.wait();
   }
 };
