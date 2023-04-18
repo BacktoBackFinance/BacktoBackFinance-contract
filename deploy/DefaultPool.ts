@@ -15,7 +15,8 @@ const deployFunction: DeployFunction = async function ({
   if ((await contract.owner()) === deployer) {
     const troveManagerAddress = (await deployments.get('TroveManager')).address;
     const activePoolAddress = (await deployments.get('ActivePool')).address;
-    const tx = await contract.setAddresses(troveManagerAddress, activePoolAddress);
+    const backedTokenAddress = (await deployments.get('BackedToken')).address;
+    const tx = await contract.setAddresses(troveManagerAddress, activePoolAddress, backedTokenAddress);
     await tx.wait();
   }
 };

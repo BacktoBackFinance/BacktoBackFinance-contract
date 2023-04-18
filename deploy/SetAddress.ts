@@ -13,11 +13,13 @@ const deployFunction: DeployFunction = async function ({
     const troveManagerAddress = (await deployments.get('TroveManager')).address;
     const stabilityPoolAddress = (await deployments.get('StabilityPool')).address;
     const defaultPoolAddress = (await deployments.get('DefaultPool')).address;
+    const backedTokenAddress = (await deployments.get('BackedToken')).address;
     const tx = await activePoolContract.setAddresses(
       borrowerOperationsAddress,
       troveManagerAddress,
       stabilityPoolAddress,
-      defaultPoolAddress
+      defaultPoolAddress,
+      backedTokenAddress
     );
     await tx.wait();
   }
@@ -39,6 +41,7 @@ const deployFunction: DeployFunction = async function ({
     const sortedTrovesAddress = (await deployments.get('SortedTroves')).address;
     const lusdTokenAddress = (await deployments.get('LUSDToken')).address;
     const lqtyStakingAddress = (await deployments.get('LQTYStaking')).address;
+    const backedTokenAddress = (await deployments.get('BackedToken')).address;
     const tx = await borrowerOperationsContract.setAddresses(
       troveManagerAddress,
       activePoolAddress,
@@ -49,7 +52,8 @@ const deployFunction: DeployFunction = async function ({
       priceFeedAddress,
       sortedTrovesAddress,
       lusdTokenAddress,
-      lqtyStakingAddress
+      lqtyStakingAddress,
+      backedTokenAddress
     );
     await tx.wait();
   }
@@ -102,6 +106,7 @@ const deployFunction: DeployFunction = async function ({
     const sortedTrovesAddress = (await deployments.get('SortedTroves')).address;
     const priceFeedAddress = (await deployments.get('BackedOracleProxy')).address;
     const communityIssuanceAddress = (await deployments.get('CommunityIssuance')).address;
+    const backedTokenAddress = (await deployments.get('BackedToken')).address;
     const tx = await stabilityPoolContract.setAddresses(
       borrowerOperationsAddress,
       troveManagerAddress,
@@ -109,7 +114,8 @@ const deployFunction: DeployFunction = async function ({
       lusdTokenAddress,
       sortedTrovesAddress,
       priceFeedAddress,
-      communityIssuanceAddress
+      communityIssuanceAddress,
+      backedTokenAddress
     );
     await tx.wait();
   }
