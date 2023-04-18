@@ -12,9 +12,10 @@ import "./Dependencies/LiquityBase.sol";
 import "./Dependencies/Ownable.sol";
 import "./Dependencies/CheckContract.sol";
 import "./Dependencies/console.sol";
+import "./Dependencies/IERC20.sol";
 
 contract BorrowerOperations is LiquityBase, Ownable, CheckContract, IBorrowerOperations {
-    string constant public NAME = "BorrowerOperations";
+    string public constant NAME = "BorrowerOperations";
 
     // --- Connected contract declarations ---
 
@@ -34,12 +35,14 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, IBorrowerOpe
     // A doubly linked list of Troves, sorted by their collateral ratios
     ISortedTroves public sortedTroves;
 
+    address public backedTokenAddress;
+
     /* --- Variable container structs  ---
 
     Used to hold, return and assign variables inside a function, in order to avoid the error:
     "CompilerError: Stack too deep". */
 
-     struct LocalVariables_adjustTrove {
+    struct LocalVariables_adjustTrove {
         uint price;
         uint collChange;
         uint netDebtChange;
@@ -84,7 +87,7 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, IBorrowerOpe
     event StabilityPoolAddressChanged(address _stabilityPoolAddress);
     event GasPoolAddressChanged(address _gasPoolAddress);
     event CollSurplusPoolAddressChanged(address _collSurplusPoolAddress);
-    event PriceFeedAddressChanged(address  _newPriceFeedAddress);
+    event PriceFeedAddressChanged(address _newPriceFeedAddress);
     event SortedTrovesAddressChanged(address _sortedTrovesAddress);
     event LUSDTokenAddressChanged(address _lusdTokenAddress);
     event LQTYStakingAddressChanged(address _lqtyStakingAddress);
@@ -92,7 +95,7 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, IBorrowerOpe
     event TroveCreated(address indexed _borrower, uint arrayIndex);
     event TroveUpdated(address indexed _borrower, uint _debt, uint _coll, uint stake, BorrowerOperation operation);
     event LUSDBorrowingFeePaid(address indexed _borrower, uint _LUSDFee);
-    
+
     // --- Dependency setters ---
 
     function setAddresses(
@@ -105,12 +108,9 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, IBorrowerOpe
         address _priceFeedAddress,
         address _sortedTrovesAddress,
         address _lusdTokenAddress,
-        address _lqtyStakingAddress
-    )
-        external
-        override
-        onlyOwner
-    {
+        address _lqtyStakingAddress,
+        address _backedTokenAddress
+    ) external override onlyOwner {
         // This makes impossible to open a trove with zero withdrawn LUSD
         assert(MIN_NET_DEBT > 0);
 
@@ -124,6 +124,7 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, IBorrowerOpe
         checkContract(_sortedTrovesAddress);
         checkContract(_lusdTokenAddress);
         checkContract(_lqtyStakingAddress);
+        checkContract(_backedTokenAddress);
 
         troveManager = ITroveManager(_troveManagerAddress);
         activePool = IActivePool(_activePoolAddress);
@@ -136,6 +137,7 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, IBorrowerOpe
         lusdToken = ILUSDToken(_lusdTokenAddress);
         lqtyStakingAddress = _lqtyStakingAddress;
         lqtyStaking = ILQTYStaking(_lqtyStakingAddress);
+        backedTokenAddress = _backedTokenAddress;
 
         emit TroveManagerAddressChanged(_troveManagerAddress);
         emit ActivePoolAddressChanged(_activePoolAddress);
@@ -153,7 +155,13 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, IBorrowerOpe
 
     // --- Borrower Trove Operations ---
 
-    function openTrove(uint _maxFeePercentage, uint _LUSDAmount, address _upperHint, address _lowerHint) external payable override {
+    function openTrove(
+        uint _maxFeePercentage,
+        uint _LUSDAmount,
+        address _upperHint,
+        address _lowerHint,
+        uint _backedAmount
+    ) external override {
         ContractsCache memory contractsCache = ContractsCache(troveManager, activePool, lusdToken);
         LocalVariables_openTrove memory vars;
 
@@ -167,7 +175,12 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, IBorrowerOpe
         vars.netDebt = _LUSDAmount;
 
         if (!isRecoveryMode) {
-            vars.LUSDFee = _triggerBorrowingFee(contractsCache.troveManager, contractsCache.lusdToken, _LUSDAmount, _maxFeePercentage);
+            vars.LUSDFee = _triggerBorrowingFee(
+                contractsCache.troveManager,
+                contractsCache.lusdToken,
+                _LUSDAmount,
+                _maxFeePercentage
+            );
             vars.netDebt = vars.netDebt.add(vars.LUSDFee);
         }
         _requireAtLeastMinNetDebt(vars.netDebt);
@@ -175,21 +188,22 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, IBorrowerOpe
         // ICR is based on the composite debt, i.e. the requested LUSD amount + LUSD borrowing fee + LUSD gas comp.
         vars.compositeDebt = _getCompositeDebt(vars.netDebt);
         assert(vars.compositeDebt > 0);
-        
-        vars.ICR = LiquityMath._computeCR(msg.value, vars.compositeDebt, vars.price);
-        vars.NICR = LiquityMath._computeNominalCR(msg.value, vars.compositeDebt);
+
+        IERC20(backedTokenAddress).transferFrom(msg.sender, address(this), _backedAmount);
+        vars.ICR = LiquityMath._computeCR(_backedAmount, vars.compositeDebt, vars.price);
+        vars.NICR = LiquityMath._computeNominalCR(_backedAmount, vars.compositeDebt);
 
         if (isRecoveryMode) {
             _requireICRisAboveCCR(vars.ICR);
         } else {
             _requireICRisAboveMCR(vars.ICR);
-            uint newTCR = _getNewTCRFromTroveChange(msg.value, true, vars.compositeDebt, true, vars.price);  // bools: coll increase, debt increase
-            _requireNewTCRisAboveCCR(newTCR); 
+            uint newTCR = _getNewTCRFromTroveChange(_backedAmount, true, vars.compositeDebt, true, vars.price); // bools: coll increase, debt increase
+            _requireNewTCRisAboveCCR(newTCR);
         }
 
         // Set the trove struct's properties
         contractsCache.troveManager.setTroveStatus(msg.sender, 1);
-        contractsCache.troveManager.increaseTroveColl(msg.sender, msg.value);
+        contractsCache.troveManager.increaseTroveColl(msg.sender, _backedAmount);
         contractsCache.troveManager.increaseTroveDebt(msg.sender, vars.compositeDebt);
 
         contractsCache.troveManager.updateTroveRewardSnapshots(msg.sender);
@@ -200,53 +214,101 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, IBorrowerOpe
         emit TroveCreated(msg.sender, vars.arrayIndex);
 
         // Move the ether to the Active Pool, and mint the LUSDAmount to the borrower
-        _activePoolAddColl(contractsCache.activePool, msg.value);
+        _activePoolAddColl(contractsCache.activePool, _backedAmount);
         _withdrawLUSD(contractsCache.activePool, contractsCache.lusdToken, msg.sender, _LUSDAmount, vars.netDebt);
         // Move the LUSD gas compensation to the Gas Pool
-        _withdrawLUSD(contractsCache.activePool, contractsCache.lusdToken, gasPoolAddress, LUSD_GAS_COMPENSATION, LUSD_GAS_COMPENSATION);
+        _withdrawLUSD(
+            contractsCache.activePool,
+            contractsCache.lusdToken,
+            gasPoolAddress,
+            LUSD_GAS_COMPENSATION,
+            LUSD_GAS_COMPENSATION
+        );
 
-        emit TroveUpdated(msg.sender, vars.compositeDebt, msg.value, vars.stake, BorrowerOperation.openTrove);
+        emit TroveUpdated(msg.sender, vars.compositeDebt, _backedAmount, vars.stake, BorrowerOperation.openTrove);
         emit LUSDBorrowingFeePaid(msg.sender, vars.LUSDFee);
     }
 
     // Send ETH as collateral to a trove
-    function addColl(address _upperHint, address _lowerHint) external payable override {
-        _adjustTrove(msg.sender, 0, 0, false, _upperHint, _lowerHint, 0);
+    function addColl(address _upperHint, address _lowerHint, uint _backedAmount) external override {
+        _adjustTrove(msg.sender, 0, 0, false, _upperHint, _lowerHint, 0, _backedAmount);
     }
 
     // Send ETH as collateral to a trove. Called by only the Stability Pool.
-    function moveETHGainToTrove(address _borrower, address _upperHint, address _lowerHint) external payable override {
+    function moveETHGainToTrove(
+        address _borrower,
+        address _upperHint,
+        address _lowerHint,
+        uint _backedAmount
+    ) external override {
         _requireCallerIsStabilityPool();
-        _adjustTrove(_borrower, 0, 0, false, _upperHint, _lowerHint, 0);
+        _adjustTrove(_borrower, 0, 0, false, _upperHint, _lowerHint, 0, _backedAmount);
     }
 
     // Withdraw ETH collateral from a trove
-    function withdrawColl(uint _collWithdrawal, address _upperHint, address _lowerHint) external override {
-        _adjustTrove(msg.sender, _collWithdrawal, 0, false, _upperHint, _lowerHint, 0);
+    function withdrawColl(
+        uint _collWithdrawal,
+        address _upperHint,
+        address _lowerHint,
+        uint _backedAmount
+    ) external override {
+        _adjustTrove(msg.sender, _collWithdrawal, 0, false, _upperHint, _lowerHint, 0, _backedAmount);
     }
 
     // Withdraw LUSD tokens from a trove: mint new LUSD tokens to the owner, and increase the trove's debt accordingly
-    function withdrawLUSD(uint _maxFeePercentage, uint _LUSDAmount, address _upperHint, address _lowerHint) external override {
-        _adjustTrove(msg.sender, 0, _LUSDAmount, true, _upperHint, _lowerHint, _maxFeePercentage);
+    function withdrawLUSD(
+        uint _maxFeePercentage,
+        uint _LUSDAmount,
+        address _upperHint,
+        address _lowerHint,
+        uint _backedAmount
+    ) external override {
+        _adjustTrove(msg.sender, 0, _LUSDAmount, true, _upperHint, _lowerHint, _maxFeePercentage, _backedAmount);
     }
 
     // Repay LUSD tokens to a Trove: Burn the repaid LUSD tokens, and reduce the trove's debt accordingly
-    function repayLUSD(uint _LUSDAmount, address _upperHint, address _lowerHint) external override {
-        _adjustTrove(msg.sender, 0, _LUSDAmount, false, _upperHint, _lowerHint, 0);
+    function repayLUSD(uint _LUSDAmount, address _upperHint, address _lowerHint, uint _backedAmount) external override {
+        _adjustTrove(msg.sender, 0, _LUSDAmount, false, _upperHint, _lowerHint, 0, _backedAmount);
     }
 
-    function adjustTrove(uint _maxFeePercentage, uint _collWithdrawal, uint _LUSDChange, bool _isDebtIncrease, address _upperHint, address _lowerHint) external payable override {
-        _adjustTrove(msg.sender, _collWithdrawal, _LUSDChange, _isDebtIncrease, _upperHint, _lowerHint, _maxFeePercentage);
+    function adjustTrove(
+        uint _maxFeePercentage,
+        uint _collWithdrawal,
+        uint _LUSDChange,
+        bool _isDebtIncrease,
+        address _upperHint,
+        address _lowerHint,
+        uint _backedAmount
+    ) external override {
+        _adjustTrove(
+            msg.sender,
+            _collWithdrawal,
+            _LUSDChange,
+            _isDebtIncrease,
+            _upperHint,
+            _lowerHint,
+            _maxFeePercentage,
+            _backedAmount
+        );
     }
 
     /*
-    * _adjustTrove(): Alongside a debt change, this function can perform either a collateral top-up or a collateral withdrawal. 
-    *
-    * It therefore expects either a positive msg.value, or a positive _collWithdrawal argument.
-    *
-    * If both are positive, it will revert.
-    */
-    function _adjustTrove(address _borrower, uint _collWithdrawal, uint _LUSDChange, bool _isDebtIncrease, address _upperHint, address _lowerHint, uint _maxFeePercentage) internal {
+     * _adjustTrove(): Alongside a debt change, this function can perform either a collateral top-up or a collateral withdrawal.
+     *
+     * It therefore expects either a positive msg.value, or a positive _collWithdrawal argument.
+     *
+     * If both are positive, it will revert.
+     */
+    function _adjustTrove(
+        address _borrower,
+        uint _collWithdrawal,
+        uint _LUSDChange,
+        bool _isDebtIncrease,
+        address _upperHint,
+        address _lowerHint,
+        uint _maxFeePercentage,
+        uint _backedAmount
+    ) internal {
         ContractsCache memory contractsCache = ContractsCache(troveManager, activePool, lusdToken);
         LocalVariables_adjustTrove memory vars;
 
@@ -257,37 +319,53 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, IBorrowerOpe
             _requireValidMaxFeePercentage(_maxFeePercentage, isRecoveryMode);
             _requireNonZeroDebtChange(_LUSDChange);
         }
-        _requireSingularCollChange(_collWithdrawal);
-        _requireNonZeroAdjustment(_collWithdrawal, _LUSDChange);
+        _requireSingularCollChange(_collWithdrawal, _backedAmount);
+        _requireNonZeroAdjustment(_collWithdrawal, _LUSDChange, _backedAmount);
         _requireTroveisActive(contractsCache.troveManager, _borrower);
 
         // Confirm the operation is either a borrower adjusting their own trove, or a pure ETH transfer from the Stability Pool to a trove
-        assert(msg.sender == _borrower || (msg.sender == stabilityPoolAddress && msg.value > 0 && _LUSDChange == 0));
+        assert(
+            msg.sender == _borrower || (msg.sender == stabilityPoolAddress && _backedAmount > 0 && _LUSDChange == 0)
+        );
+        IERC20(backedTokenAddress).transferFrom(msg.sender, address(this), _backedAmount);
 
         contractsCache.troveManager.applyPendingRewards(_borrower);
 
         // Get the collChange based on whether or not ETH was sent in the transaction
-        (vars.collChange, vars.isCollIncrease) = _getCollChange(msg.value, _collWithdrawal);
+        (vars.collChange, vars.isCollIncrease) = _getCollChange(_backedAmount, _collWithdrawal);
 
         vars.netDebtChange = _LUSDChange;
 
         // If the adjustment incorporates a debt increase and system is in Normal Mode, then trigger a borrowing fee
-        if (_isDebtIncrease && !isRecoveryMode) { 
-            vars.LUSDFee = _triggerBorrowingFee(contractsCache.troveManager, contractsCache.lusdToken, _LUSDChange, _maxFeePercentage);
+        if (_isDebtIncrease && !isRecoveryMode) {
+            vars.LUSDFee = _triggerBorrowingFee(
+                contractsCache.troveManager,
+                contractsCache.lusdToken,
+                _LUSDChange,
+                _maxFeePercentage
+            );
             vars.netDebtChange = vars.netDebtChange.add(vars.LUSDFee); // The raw debt change includes the fee
         }
 
         vars.debt = contractsCache.troveManager.getTroveDebt(_borrower);
         vars.coll = contractsCache.troveManager.getTroveColl(_borrower);
-        
+
         // Get the trove's old ICR before the adjustment, and what its new ICR will be after the adjustment
         vars.oldICR = LiquityMath._computeCR(vars.coll, vars.debt, vars.price);
-        vars.newICR = _getNewICRFromTroveChange(vars.coll, vars.debt, vars.collChange, vars.isCollIncrease, vars.netDebtChange, _isDebtIncrease, vars.price);
-        assert(_collWithdrawal <= vars.coll); 
+        vars.newICR = _getNewICRFromTroveChange(
+            vars.coll,
+            vars.debt,
+            vars.collChange,
+            vars.isCollIncrease,
+            vars.netDebtChange,
+            _isDebtIncrease,
+            vars.price
+        );
+        assert(_collWithdrawal <= vars.coll);
 
         // Check the adjustment satisfies all conditions for the current system mode
         _requireValidAdjustmentInCurrentMode(isRecoveryMode, _collWithdrawal, _isDebtIncrease, vars);
-            
+
         // When the adjustment is a debt repayment, check it's a valid amount and that the caller has enough LUSD
         if (!_isDebtIncrease && _LUSDChange > 0) {
             _requireAtLeastMinNetDebt(_getNetDebt(vars.debt).sub(vars.netDebtChange));
@@ -295,15 +373,29 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, IBorrowerOpe
             _requireSufficientLUSDBalance(contractsCache.lusdToken, _borrower, vars.netDebtChange);
         }
 
-        (vars.newColl, vars.newDebt) = _updateTroveFromAdjustment(contractsCache.troveManager, _borrower, vars.collChange, vars.isCollIncrease, vars.netDebtChange, _isDebtIncrease);
+        (vars.newColl, vars.newDebt) = _updateTroveFromAdjustment(
+            contractsCache.troveManager,
+            _borrower,
+            vars.collChange,
+            vars.isCollIncrease,
+            vars.netDebtChange,
+            _isDebtIncrease
+        );
         vars.stake = contractsCache.troveManager.updateStakeAndTotalStakes(_borrower);
 
         // Re-insert trove in to the sorted list
-        uint newNICR = _getNewNominalICRFromTroveChange(vars.coll, vars.debt, vars.collChange, vars.isCollIncrease, vars.netDebtChange, _isDebtIncrease);
+        uint newNICR = _getNewNominalICRFromTroveChange(
+            vars.coll,
+            vars.debt,
+            vars.collChange,
+            vars.isCollIncrease,
+            vars.netDebtChange,
+            _isDebtIncrease
+        );
         sortedTroves.reInsert(_borrower, newNICR, _upperHint, _lowerHint);
 
         emit TroveUpdated(_borrower, vars.newDebt, vars.newColl, vars.stake, BorrowerOperation.adjustTrove);
-        emit LUSDBorrowingFeePaid(msg.sender,  vars.LUSDFee);
+        emit LUSDBorrowingFeePaid(msg.sender, vars.LUSDFee);
 
         // Use the unmodified _LUSDChange here, as we don't send the fee to the user
         _moveTokensAndETHfromAdjustment(
@@ -360,12 +452,17 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, IBorrowerOpe
 
     // --- Helper functions ---
 
-    function _triggerBorrowingFee(ITroveManager _troveManager, ILUSDToken _lusdToken, uint _LUSDAmount, uint _maxFeePercentage) internal returns (uint) {
+    function _triggerBorrowingFee(
+        ITroveManager _troveManager,
+        ILUSDToken _lusdToken,
+        uint _LUSDAmount,
+        uint _maxFeePercentage
+    ) internal returns (uint) {
         _troveManager.decayBaseRateFromBorrowing(); // decay the baseRate state variable
         uint LUSDFee = _troveManager.getBorrowingFee(_LUSDAmount);
 
         _requireUserAcceptsFee(LUSDFee, _LUSDAmount, _maxFeePercentage);
-        
+
         // Send fee to LQTY staking contract
         lqtyStaking.increaseF_LUSD(LUSDFee);
         _lusdToken.mint(lqtyStakingAddress, LUSDFee);
@@ -382,11 +479,7 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, IBorrowerOpe
     function _getCollChange(
         uint _collReceived,
         uint _requestedCollWithdrawal
-    )
-        internal
-        pure
-        returns(uint collChange, bool isCollIncrease)
-    {
+    ) internal pure returns (uint collChange, bool isCollIncrease) {
         if (_collReceived != 0) {
             collChange = _collReceived;
             isCollIncrease = true;
@@ -396,28 +489,25 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, IBorrowerOpe
     }
 
     // Update trove's coll and debt based on whether they increase or decrease
-    function _updateTroveFromAdjustment
-    (
+    function _updateTroveFromAdjustment(
         ITroveManager _troveManager,
         address _borrower,
         uint _collChange,
         bool _isCollIncrease,
         uint _debtChange,
         bool _isDebtIncrease
-    )
-        internal
-        returns (uint, uint)
-    {
-        uint newColl = (_isCollIncrease) ? _troveManager.increaseTroveColl(_borrower, _collChange)
-                                        : _troveManager.decreaseTroveColl(_borrower, _collChange);
-        uint newDebt = (_isDebtIncrease) ? _troveManager.increaseTroveDebt(_borrower, _debtChange)
-                                        : _troveManager.decreaseTroveDebt(_borrower, _debtChange);
+    ) internal returns (uint, uint) {
+        uint newColl = (_isCollIncrease)
+            ? _troveManager.increaseTroveColl(_borrower, _collChange)
+            : _troveManager.decreaseTroveColl(_borrower, _collChange);
+        uint newDebt = (_isDebtIncrease)
+            ? _troveManager.increaseTroveDebt(_borrower, _debtChange)
+            : _troveManager.decreaseTroveDebt(_borrower, _debtChange);
 
         return (newColl, newDebt);
     }
 
-    function _moveTokensAndETHfromAdjustment
-    (
+    function _moveTokensAndETHfromAdjustment(
         IActivePool _activePool,
         ILUSDToken _lusdToken,
         address _borrower,
@@ -426,9 +516,7 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, IBorrowerOpe
         uint _LUSDChange,
         bool _isDebtIncrease,
         uint _netDebtChange
-    )
-        internal
-    {
+    ) internal {
         if (_isDebtIncrease) {
             _withdrawLUSD(_activePool, _lusdToken, _borrower, _LUSDChange, _netDebtChange);
         } else {
@@ -449,7 +537,13 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, IBorrowerOpe
     }
 
     // Issue the specified amount of LUSD to _account and increases the total active debt (_netDebtIncrease potentially includes a LUSDFee)
-    function _withdrawLUSD(IActivePool _activePool, ILUSDToken _lusdToken, address _account, uint _LUSDAmount, uint _netDebtIncrease) internal {
+    function _withdrawLUSD(
+        IActivePool _activePool,
+        ILUSDToken _lusdToken,
+        address _account,
+        uint _LUSDAmount,
+        uint _netDebtIncrease
+    ) internal {
         _activePool.increaseLUSDDebt(_netDebtIncrease);
         _lusdToken.mint(_account, _LUSDAmount);
     }
@@ -462,16 +556,19 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, IBorrowerOpe
 
     // --- 'Require' wrapper functions ---
 
-    function _requireSingularCollChange(uint _collWithdrawal) internal view {
-        require(msg.value == 0 || _collWithdrawal == 0, "BorrowerOperations: Cannot withdraw and add coll");
+    function _requireSingularCollChange(uint _collWithdrawal, uint _backedAmount) internal pure {
+        require(_backedAmount == 0 || _collWithdrawal == 0, "BorrowerOperations: Cannot withdraw and add coll");
     }
 
     function _requireCallerIsBorrower(address _borrower) internal view {
         require(msg.sender == _borrower, "BorrowerOps: Caller must be the borrower for a withdrawal");
     }
 
-    function _requireNonZeroAdjustment(uint _collWithdrawal, uint _LUSDChange) internal view {
-        require(msg.value != 0 || _collWithdrawal != 0 || _LUSDChange != 0, "BorrowerOps: There must be either a collateral change or a debt change");
+    function _requireNonZeroAdjustment(uint _collWithdrawal, uint _LUSDChange, uint _backedAmount) internal pure {
+        require(
+            _backedAmount != 0 || _collWithdrawal != 0 || _LUSDChange != 0,
+            "BorrowerOps: There must be either a collateral change or a debt change"
+        );
     }
 
     function _requireTroveisActive(ITroveManager _troveManager, address _borrower) internal view {
@@ -487,7 +584,7 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, IBorrowerOpe
     function _requireNonZeroDebtChange(uint _LUSDChange) internal pure {
         require(_LUSDChange > 0, "BorrowerOps: Debt increase requires non-zero debtChange");
     }
-   
+
     function _requireNotInRecoveryMode(uint _price) internal view {
         require(!_checkRecoveryMode(_price), "BorrowerOps: Operation not permitted during Recovery Mode");
     }
@@ -496,39 +593,42 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, IBorrowerOpe
         require(_collWithdrawal == 0, "BorrowerOps: Collateral withdrawal not permitted Recovery Mode");
     }
 
-    function _requireValidAdjustmentInCurrentMode 
-    (
+    function _requireValidAdjustmentInCurrentMode(
         bool _isRecoveryMode,
         uint _collWithdrawal,
-        bool _isDebtIncrease, 
+        bool _isDebtIncrease,
         LocalVariables_adjustTrove memory _vars
-    ) 
-        internal 
-        view 
-    {
-        /* 
-        *In Recovery Mode, only allow:
-        *
-        * - Pure collateral top-up
-        * - Pure debt repayment
-        * - Collateral top-up with debt repayment
-        * - A debt increase combined with a collateral top-up which makes the ICR >= 150% and improves the ICR (and by extension improves the TCR).
-        *
-        * In Normal Mode, ensure:
-        *
-        * - The new ICR is above MCR
-        * - The adjustment won't pull the TCR below CCR
-        */
+    ) internal view {
+        /*
+         *In Recovery Mode, only allow:
+         *
+         * - Pure collateral top-up
+         * - Pure debt repayment
+         * - Collateral top-up with debt repayment
+         * - A debt increase combined with a collateral top-up which makes the ICR >= 150% and improves the ICR (and by extension improves the TCR).
+         *
+         * In Normal Mode, ensure:
+         *
+         * - The new ICR is above MCR
+         * - The adjustment won't pull the TCR below CCR
+         */
         if (_isRecoveryMode) {
             _requireNoCollWithdrawal(_collWithdrawal);
             if (_isDebtIncrease) {
                 _requireICRisAboveCCR(_vars.newICR);
                 _requireNewICRisAboveOldICR(_vars.newICR, _vars.oldICR);
-            }       
-        } else { // if Normal Mode
+            }
+        } else {
+            // if Normal Mode
             _requireICRisAboveMCR(_vars.newICR);
-            _vars.newTCR = _getNewTCRFromTroveChange(_vars.collChange, _vars.isCollIncrease, _vars.netDebtChange, _isDebtIncrease, _vars.price);
-            _requireNewTCRisAboveCCR(_vars.newTCR);  
+            _vars.newTCR = _getNewTCRFromTroveChange(
+                _vars.collChange,
+                _vars.isCollIncrease,
+                _vars.netDebtChange,
+                _isDebtIncrease,
+                _vars.price
+            );
+            _requireNewTCRisAboveCCR(_vars.newTCR);
         }
     }
 
@@ -549,56 +649,68 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, IBorrowerOpe
     }
 
     function _requireAtLeastMinNetDebt(uint _netDebt) internal pure {
-        require (_netDebt >= MIN_NET_DEBT, "BorrowerOps: Trove's net debt must be greater than minimum");
+        require(_netDebt >= MIN_NET_DEBT, "BorrowerOps: Trove's net debt must be greater than minimum");
     }
 
     function _requireValidLUSDRepayment(uint _currentDebt, uint _debtRepayment) internal pure {
-        require(_debtRepayment <= _currentDebt.sub(LUSD_GAS_COMPENSATION), "BorrowerOps: Amount repaid must not be larger than the Trove's debt");
+        require(
+            _debtRepayment <= _currentDebt.sub(LUSD_GAS_COMPENSATION),
+            "BorrowerOps: Amount repaid must not be larger than the Trove's debt"
+        );
     }
 
     function _requireCallerIsStabilityPool() internal view {
         require(msg.sender == stabilityPoolAddress, "BorrowerOps: Caller is not Stability Pool");
     }
 
-     function _requireSufficientLUSDBalance(ILUSDToken _lusdToken, address _borrower, uint _debtRepayment) internal view {
-        require(_lusdToken.balanceOf(_borrower) >= _debtRepayment, "BorrowerOps: Caller doesnt have enough LUSD to make repayment");
+    function _requireSufficientLUSDBalance(
+        ILUSDToken _lusdToken,
+        address _borrower,
+        uint _debtRepayment
+    ) internal view {
+        require(
+            _lusdToken.balanceOf(_borrower) >= _debtRepayment,
+            "BorrowerOps: Caller doesnt have enough LUSD to make repayment"
+        );
     }
 
     function _requireValidMaxFeePercentage(uint _maxFeePercentage, bool _isRecoveryMode) internal pure {
         if (_isRecoveryMode) {
-            require(_maxFeePercentage <= DECIMAL_PRECISION,
-                "Max fee percentage must less than or equal to 100%");
+            require(_maxFeePercentage <= DECIMAL_PRECISION, "Max fee percentage must less than or equal to 100%");
         } else {
-            require(_maxFeePercentage >= BORROWING_FEE_FLOOR && _maxFeePercentage <= DECIMAL_PRECISION,
-                "Max fee percentage must be between 0.5% and 100%");
+            require(
+                _maxFeePercentage >= BORROWING_FEE_FLOOR && _maxFeePercentage <= DECIMAL_PRECISION,
+                "Max fee percentage must be between 0.5% and 100%"
+            );
         }
     }
 
     // --- ICR and TCR getters ---
 
     // Compute the new collateral ratio, considering the change in coll and debt. Assumes 0 pending rewards.
-    function _getNewNominalICRFromTroveChange
-    (
+    function _getNewNominalICRFromTroveChange(
         uint _coll,
         uint _debt,
         uint _collChange,
         bool _isCollIncrease,
         uint _debtChange,
         bool _isDebtIncrease
-    )
-        pure
-        internal
-        returns (uint)
-    {
-        (uint newColl, uint newDebt) = _getNewTroveAmounts(_coll, _debt, _collChange, _isCollIncrease, _debtChange, _isDebtIncrease);
+    ) internal pure returns (uint) {
+        (uint newColl, uint newDebt) = _getNewTroveAmounts(
+            _coll,
+            _debt,
+            _collChange,
+            _isCollIncrease,
+            _debtChange,
+            _isDebtIncrease
+        );
 
         uint newNICR = LiquityMath._computeNominalCR(newColl, newDebt);
         return newNICR;
     }
 
     // Compute the new collateral ratio, considering the change in coll and debt. Assumes 0 pending rewards.
-    function _getNewICRFromTroveChange
-    (
+    function _getNewICRFromTroveChange(
         uint _coll,
         uint _debt,
         uint _collChange,
@@ -606,12 +718,15 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, IBorrowerOpe
         uint _debtChange,
         bool _isDebtIncrease,
         uint _price
-    )
-        pure
-        internal
-        returns (uint)
-    {
-        (uint newColl, uint newDebt) = _getNewTroveAmounts(_coll, _debt, _collChange, _isCollIncrease, _debtChange, _isDebtIncrease);
+    ) internal pure returns (uint) {
+        (uint newColl, uint newDebt) = _getNewTroveAmounts(
+            _coll,
+            _debt,
+            _collChange,
+            _isCollIncrease,
+            _debtChange,
+            _isDebtIncrease
+        );
 
         uint newICR = LiquityMath._computeCR(newColl, newDebt, _price);
         return newICR;
@@ -624,32 +739,23 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, IBorrowerOpe
         bool _isCollIncrease,
         uint _debtChange,
         bool _isDebtIncrease
-    )
-        internal
-        pure
-        returns (uint, uint)
-    {
+    ) internal pure returns (uint, uint) {
         uint newColl = _coll;
         uint newDebt = _debt;
 
-        newColl = _isCollIncrease ? _coll.add(_collChange) :  _coll.sub(_collChange);
+        newColl = _isCollIncrease ? _coll.add(_collChange) : _coll.sub(_collChange);
         newDebt = _isDebtIncrease ? _debt.add(_debtChange) : _debt.sub(_debtChange);
 
         return (newColl, newDebt);
     }
 
-    function _getNewTCRFromTroveChange
-    (
+    function _getNewTCRFromTroveChange(
         uint _collChange,
         bool _isCollIncrease,
         uint _debtChange,
         bool _isDebtIncrease,
         uint _price
-    )
-        internal
-        view
-        returns (uint)
-    {
+    ) internal view returns (uint) {
         uint totalColl = getEntireSystemColl();
         uint totalDebt = getEntireSystemDebt();
 

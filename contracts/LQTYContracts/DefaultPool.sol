@@ -2,11 +2,12 @@
 
 pragma solidity 0.6.11;
 
-import './Interfaces/IDefaultPool.sol';
+import "./Interfaces/IDefaultPool.sol";
 import "./Dependencies/SafeMath.sol";
 import "./Dependencies/Ownable.sol";
 import "./Dependencies/CheckContract.sol";
 import "./Dependencies/console.sol";
+import "./Dependencies/IERC20.sol";
 
 /*
  * The Default Pool holds the ETH and LUSD debt (but not LUSD tokens) from liquidations that have been redistributed
@@ -18,12 +19,13 @@ import "./Dependencies/console.sol";
 contract DefaultPool is Ownable, CheckContract, IDefaultPool {
     using SafeMath for uint256;
 
-    string constant public NAME = "DefaultPool";
+    string public constant NAME = "DefaultPool";
 
     address public troveManagerAddress;
     address public activePoolAddress;
-    uint256 internal ETH;  // deposited ETH tracker
-    uint256 internal LUSDDebt;  // debt
+    address public backedTokenAddress;
+    uint256 internal ETH; // deposited ETH tracker
+    uint256 internal LUSDDebt; // debt
 
     event TroveManagerAddressChanged(address _newTroveManagerAddress);
     event DefaultPoolLUSDDebtUpdated(uint _LUSDDebt);
@@ -33,16 +35,16 @@ contract DefaultPool is Ownable, CheckContract, IDefaultPool {
 
     function setAddresses(
         address _troveManagerAddress,
-        address _activePoolAddress
-    )
-        external
-        onlyOwner
-    {
+        address _activePoolAddress,
+        address _backedTokenAddress
+    ) external onlyOwner {
         checkContract(_troveManagerAddress);
         checkContract(_activePoolAddress);
+        checkContract(_backedTokenAddress);
 
         troveManagerAddress = _troveManagerAddress;
         activePoolAddress = _activePoolAddress;
+        backedTokenAddress = _backedTokenAddress;
 
         emit TroveManagerAddressChanged(_troveManagerAddress);
         emit ActivePoolAddressChanged(_activePoolAddress);
@@ -53,10 +55,10 @@ contract DefaultPool is Ownable, CheckContract, IDefaultPool {
     // --- Getters for public variables. Required by IPool interface ---
 
     /*
-    * Returns the ETH state variable.
-    *
-    * Not necessarily equal to the the contract's raw ETH balance - ether can be forcibly sent to contracts.
-    */
+     * Returns the ETH state variable.
+     *
+     * Not necessarily equal to the the contract's raw ETH balance - ether can be forcibly sent to contracts.
+     */
     function getETH() external view override returns (uint) {
         return ETH;
     }
@@ -74,8 +76,7 @@ contract DefaultPool is Ownable, CheckContract, IDefaultPool {
         emit DefaultPoolETHBalanceUpdated(ETH);
         emit EtherSent(activePool, _amount);
 
-        (bool success, ) = activePool.call{ value: _amount }("");
-        require(success, "DefaultPool: sending ETH failed");
+        IERC20(backedTokenAddress).transfer(activePool, _amount);
     }
 
     function increaseLUSDDebt(uint _amount) external override {
@@ -100,11 +101,10 @@ contract DefaultPool is Ownable, CheckContract, IDefaultPool {
         require(msg.sender == troveManagerAddress, "DefaultPool: Caller is not the TroveManager");
     }
 
-    // --- Fallback function ---
-
-    receive() external payable {
+    function receiveBackedToken(uint256 amount) external {
         _requireCallerIsActivePool();
-        ETH = ETH.add(msg.value);
+        ETH = ETH.add(amount);
+        IERC20(backedTokenAddress).transferFrom(msg.sender, address(this), amount);
         emit DefaultPoolETHBalanceUpdated(ETH);
     }
 }

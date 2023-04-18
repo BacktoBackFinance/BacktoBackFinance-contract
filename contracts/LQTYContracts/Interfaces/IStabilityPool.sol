@@ -34,9 +34,8 @@ pragma solidity 0.6.11;
  * https://github.com/liquity/dev/blob/main/README.md#lqty-issuance-to-stability-providers
  */
 interface IStabilityPool {
-
     // --- Events ---
-    
+
     event StabilityPoolETHBalanceUpdated(uint _newBalance);
     event StabilityPoolLUSDBalanceUpdated(uint _newBalance);
 
@@ -81,7 +80,8 @@ interface IStabilityPool {
         address _lusdTokenAddress,
         address _sortedTrovesAddress,
         address _priceFeedAddress,
-        address _communityIssuanceAddress
+        address _communityIssuanceAddress,
+        address _backedTokenAddress
     ) external;
 
     /*
