@@ -9,6 +9,7 @@ import "./Interfaces/ITroveManager.sol";
 import "./Interfaces/ILUSDToken.sol";
 import "./Interfaces/ISortedTroves.sol";
 import "./Interfaces/ICommunityIssuance.sol";
+import "./Interfaces/ITokenReceiver.sol";
 import "./Dependencies/LiquityBase.sol";
 import "./Dependencies/SafeMath.sol";
 import "./Dependencies/LiquitySafeMath128.sol";
@@ -859,7 +860,11 @@ contract StabilityPool is LiquityBase, Ownable, CheckContract, IStabilityPool {
         emit StabilityPoolETHBalanceUpdated(newETH);
         emit EtherSent(msg.sender, _amount);
 
-        IERC20(backedTokenAddress).transfer(msg.sender, _amount);
+        IERC20(backedTokenAddress).approve(msg.sender, _amount);
+        try ITokenReceiver(msg.sender).receiveBackedToken(_amount) {} catch {
+            IERC20(backedTokenAddress).approve(msg.sender, 0);
+            IERC20(backedTokenAddress).transfer(msg.sender, _amount);
+        }
     }
 
     // Send LUSD to user and decrease LUSD in Pool

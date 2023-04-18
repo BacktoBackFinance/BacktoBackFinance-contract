@@ -3,6 +3,7 @@
 pragma solidity 0.6.11;
 
 import "./Interfaces/IDefaultPool.sol";
+import "./Interfaces/ITokenReceiver.sol";
 import "./Dependencies/SafeMath.sol";
 import "./Dependencies/Ownable.sol";
 import "./Dependencies/CheckContract.sol";
@@ -76,7 +77,8 @@ contract DefaultPool is Ownable, CheckContract, IDefaultPool {
         emit DefaultPoolETHBalanceUpdated(ETH);
         emit EtherSent(activePool, _amount);
 
-        IERC20(backedTokenAddress).transfer(activePool, _amount);
+        IERC20(backedTokenAddress).approve(activePool, _amount);
+        ITokenReceiver(activePool).receiveBackedToken(_amount);
     }
 
     function increaseLUSDDebt(uint _amount) external override {
