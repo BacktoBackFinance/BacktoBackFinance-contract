@@ -23,10 +23,6 @@ export async function deployPoolContractsFixture() {
   const MockUSDCContract = await MockUSDC.deploy();
   const mockUSDC = MockUSDC__factory.connect(MockUSDCContract.address, provider);
 
-  const MockIB01 = await ethers.getContractFactory('BackedTokenImplementation');
-  const MockIB01Contract = await MockIB01.deploy();
-  const mockIB01 = BackedTokenImplementation__factory.connect(MockIB01Contract.address, provider);
-
   const SanctionsListMock = await ethers.getContractFactory('SanctionsListMock');
   const SanctionsListMockContract = await SanctionsListMock.deploy();
   const sanctionsListMock = SanctionsListMock__factory.connect(SanctionsListMockContract.address, provider);
@@ -47,7 +43,7 @@ export async function deployPoolContractsFixture() {
   const BackedSwapContract = await BackedSwap.deploy();
   const backedSwap  = BackedSwap__factory.connect(BackedSwapContract.address, provider);
 
-  return { mockUSDC,  mockIB01, sanctionsListMock, backedOracle, backedFactory, backedSwap, backedVault, Alice, Bob, Caro, Dave };
+  return { mockUSDC, sanctionsListMock, backedOracle, backedFactory, backedSwap, backedVault, Alice, Bob, Caro, Dave };
 }
 
 export function expandTo18Decimals(n: number) {
