@@ -5,27 +5,27 @@ const deployFunction: DeployFunction = async function ({ deployments, getNamedAc
   const { deploy } = deployments;
   const { deployer } = await getNamedAccounts();
   const communityIssuanceAddress = (await deployments.get('CommunityIssuance')).address;
-  const lqtyStakingAddress = (await deployments.get('LQTYStaking')).address;
+  const b2bStakingAddress = (await deployments.get('B2BStaking')).address;
   const lockupFactoryAddress = (await deployments.get('LockupContractFactory')).address;
   const bountyAddress = '0x0000000000000000000000000000000000000001';
   const lpRewardsAddress = '0x0000000000000000000000000000000000000002';
   const multisigAddress = '0x0000000000000000000000000000000000000003';
-  const { address } = await deploy('LQTYToken', {
+  const { address } = await deploy('B2BToken', {
     from: deployer,
     args: [
       communityIssuanceAddress,
-      lqtyStakingAddress,
+      b2bStakingAddress,
       lockupFactoryAddress,
       bountyAddress,
       lpRewardsAddress,
       multisigAddress,
     ],
   });
-  console.log('LQTYToken deployed at', address);
+  console.log('B2BToken deployed at', address);
 };
 
 export default deployFunction;
 
-deployFunction.dependencies = ['CommunityIssuance', 'LQTYStaking', 'LockupContractFactory'];
+deployFunction.dependencies = ['CommunityIssuance', 'B2BStaking', 'LockupContractFactory'];
 
-deployFunction.tags = ['LQTYToken'];
+deployFunction.tags = ['B2BToken'];

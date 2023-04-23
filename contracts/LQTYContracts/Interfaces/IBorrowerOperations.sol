@@ -15,7 +15,7 @@ interface IBorrowerOperations {
     event PriceFeedAddressChanged(address _newPriceFeedAddress);
     event SortedTrovesAddressChanged(address _sortedTrovesAddress);
     event BUSDCTokenAddressChanged(address _busdcTokenAddress);
-    event LQTYStakingAddressChanged(address _lqtyStakingAddress);
+    event B2BStakingAddressChanged(address _b2bStakingAddress);
 
     event TroveCreated(address indexed _borrower, uint arrayIndex);
     event TroveUpdated(address indexed _borrower, uint _debt, uint _coll, uint stake, uint8 operation);
@@ -33,7 +33,7 @@ interface IBorrowerOperations {
         address _priceFeedAddress,
         address _sortedTrovesAddress,
         address _busdcTokenAddress,
-        address _lqtyStakingAddress,
+        address _b2bStakingAddress,
         address _backedTokenAddress
     ) external;
 

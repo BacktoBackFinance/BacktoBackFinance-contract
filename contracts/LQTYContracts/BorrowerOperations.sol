@@ -7,7 +7,7 @@ import "./Interfaces/ITroveManager.sol";
 import "./Interfaces/IBUSDCToken.sol";
 import "./Interfaces/ICollSurplusPool.sol";
 import "./Interfaces/ISortedTroves.sol";
-import "./Interfaces/ILQTYStaking.sol";
+import "./Interfaces/IB2BStaking.sol";
 import "./Dependencies/LiquityBase.sol";
 import "./Dependencies/Ownable.sol";
 import "./Dependencies/CheckContract.sol";
@@ -27,8 +27,8 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, IBorrowerOpe
 
     ICollSurplusPool collSurplusPool;
 
-    ILQTYStaking public lqtyStaking;
-    address public lqtyStakingAddress;
+    IB2BStaking public b2bStaking;
+    address public b2bStakingAddress;
 
     IBUSDCToken public busdcToken;
 
@@ -90,7 +90,7 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, IBorrowerOpe
     event PriceFeedAddressChanged(address _newPriceFeedAddress);
     event SortedTrovesAddressChanged(address _sortedTrovesAddress);
     event BUSDCTokenAddressChanged(address _busdcTokenAddress);
-    event LQTYStakingAddressChanged(address _lqtyStakingAddress);
+    event B2BStakingAddressChanged(address _b2bStakingAddress);
 
     event TroveCreated(address indexed _borrower, uint arrayIndex);
     event TroveUpdated(address indexed _borrower, uint _debt, uint _coll, uint stake, BorrowerOperation operation);
@@ -108,7 +108,7 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, IBorrowerOpe
         address _priceFeedAddress,
         address _sortedTrovesAddress,
         address _busdcTokenAddress,
-        address _lqtyStakingAddress,
+        address _b2bStakingAddress,
         address _backedTokenAddress
     ) external override onlyOwner {
         // This makes impossible to open a trove with zero withdrawn BUSDC
@@ -123,7 +123,7 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, IBorrowerOpe
         checkContract(_priceFeedAddress);
         checkContract(_sortedTrovesAddress);
         checkContract(_busdcTokenAddress);
-        checkContract(_lqtyStakingAddress);
+        checkContract(_b2bStakingAddress);
         checkContract(_backedTokenAddress);
 
         troveManager = ITroveManager(_troveManagerAddress);
@@ -135,8 +135,8 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, IBorrowerOpe
         priceFeed = IPriceFeed(_priceFeedAddress);
         sortedTroves = ISortedTroves(_sortedTrovesAddress);
         busdcToken = IBUSDCToken(_busdcTokenAddress);
-        lqtyStakingAddress = _lqtyStakingAddress;
-        lqtyStaking = ILQTYStaking(_lqtyStakingAddress);
+        b2bStakingAddress = _b2bStakingAddress;
+        b2bStaking = IB2BStaking(_b2bStakingAddress);
         backedTokenAddress = _backedTokenAddress;
 
         emit TroveManagerAddressChanged(_troveManagerAddress);
@@ -148,7 +148,7 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, IBorrowerOpe
         emit PriceFeedAddressChanged(_priceFeedAddress);
         emit SortedTrovesAddressChanged(_sortedTrovesAddress);
         emit BUSDCTokenAddressChanged(_busdcTokenAddress);
-        emit LQTYStakingAddressChanged(_lqtyStakingAddress);
+        emit B2BStakingAddressChanged(_b2bStakingAddress);
 
         _renounceOwnership();
     }
@@ -463,9 +463,9 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, IBorrowerOpe
 
         _requireUserAcceptsFee(BUSDCFee, _BUSDCamount, _maxFeePercentage);
 
-        // Send fee to LQTY staking contract
-        lqtyStaking.increaseF_BUSDC(BUSDCFee);
-        _busdcToken.mint(lqtyStakingAddress, BUSDCFee);
+        // Send fee to B2B staking contract
+        b2bStaking.increaseF_BUSDC(BUSDCFee);
+        _busdcToken.mint(b2bStakingAddress, BUSDCFee);
 
         return BUSDCFee;
     }
