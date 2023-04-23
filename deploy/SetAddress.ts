@@ -39,7 +39,7 @@ const deployFunction: DeployFunction = async function ({
     const collSurplusPoolAddress = (await deployments.get('CollSurplusPool')).address;
     const priceFeedAddress = (await deployments.get('BackedOracleProxy')).address;
     const sortedTrovesAddress = (await deployments.get('SortedTroves')).address;
-    const lusdTokenAddress = (await deployments.get('LUSDToken')).address;
+    const busdcTokenAddress = (await deployments.get('BUSDCToken')).address;
     const lqtyStakingAddress = (await deployments.get('LQTYStaking')).address;
     const backedTokenAddress = (await deployments.get('BackedToken')).address;
     const tx = await borrowerOperationsContract.setAddresses(
@@ -51,7 +51,7 @@ const deployFunction: DeployFunction = async function ({
       collSurplusPoolAddress,
       priceFeedAddress,
       sortedTrovesAddress,
-      lusdTokenAddress,
+      busdcTokenAddress,
       lqtyStakingAddress,
       backedTokenAddress
     );
@@ -72,7 +72,7 @@ const deployFunction: DeployFunction = async function ({
     const gasPoolAddress = (await deployments.get('GasPool')).address;
     const collSurplusPoolAddress = (await deployments.get('CollSurplusPool')).address;
     const priceFeedAddress = (await deployments.get('BackedOracleProxy')).address;
-    const lusdTokenAddress = (await deployments.get('LUSDToken')).address;
+    const busdcTokenAddress = (await deployments.get('BUSDCToken')).address;
     const sortedTrovesAddress = (await deployments.get('SortedTroves')).address;
     const lqtyTokenAddress = (await deployments.get('LQTYToken')).address;
     const lqtyStakingAddress = (await deployments.get('LQTYStaking')).address;
@@ -84,7 +84,7 @@ const deployFunction: DeployFunction = async function ({
       gasPoolAddress,
       collSurplusPoolAddress,
       priceFeedAddress,
-      lusdTokenAddress,
+      busdcTokenAddress,
       sortedTrovesAddress,
       lqtyTokenAddress,
       lqtyStakingAddress
@@ -102,7 +102,7 @@ const deployFunction: DeployFunction = async function ({
     const borrowerOperationsAddress = (await deployments.get('BorrowerOperations')).address;
     const troveManagerAddress = (await deployments.get('TroveManager')).address;
     const activePoolAddress = (await deployments.get('ActivePool')).address;
-    const lusdTokenAddress = (await deployments.get('LUSDToken')).address;
+    const busdcTokenAddress = (await deployments.get('BUSDCToken')).address;
     const sortedTrovesAddress = (await deployments.get('SortedTroves')).address;
     const priceFeedAddress = (await deployments.get('BackedOracleProxy')).address;
     const communityIssuanceAddress = (await deployments.get('CommunityIssuance')).address;
@@ -111,7 +111,7 @@ const deployFunction: DeployFunction = async function ({
       borrowerOperationsAddress,
       troveManagerAddress,
       activePoolAddress,
-      lusdTokenAddress,
+      busdcTokenAddress,
       sortedTrovesAddress,
       priceFeedAddress,
       communityIssuanceAddress,
@@ -148,13 +148,13 @@ const deployFunction: DeployFunction = async function ({
   const LQTYStakingContract = await ethers.getContractAt('LQTYStaking', (await deployments.get('LQTYStaking')).address);
   if ((await LQTYStakingContract.owner()) === deployer) {
     const lqtyTokenAddress = (await deployments.get('LQTYToken')).address;
-    const lusdTokenAddress = (await deployments.get('LUSDToken')).address;
+    const busdcTokenAddress = (await deployments.get('BUSDCToken')).address;
     const troveManagerAddress = (await deployments.get('TroveManager')).address;
     const borrowerOperationsAddress = (await deployments.get('BorrowerOperations')).address;
     const activePoolAddress = (await deployments.get('ActivePool')).address;
     const tx = await LQTYStakingContract.setAddresses(
       lqtyTokenAddress,
-      lusdTokenAddress,
+      busdcTokenAddress,
       troveManagerAddress,
       borrowerOperationsAddress,
       activePoolAddress
