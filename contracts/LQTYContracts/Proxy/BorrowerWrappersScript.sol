@@ -23,7 +23,7 @@ contract BorrowerWrappersScript is BorrowerOperationsScript, ETHTransferScript, 
     ITroveManager immutable troveManager;
     IStabilityPool immutable stabilityPool;
     IPriceFeed immutable priceFeed;
-    IERC20 immutable lusdToken;
+    IERC20 immutable busdcToken;
     IERC20 immutable lqtyToken;
     ILQTYStaking immutable lqtyStaking;
     address immutable backedToken;
@@ -50,9 +50,9 @@ contract BorrowerWrappersScript is BorrowerOperationsScript, ETHTransferScript, 
         checkContract(address(priceFeedCached));
         priceFeed = priceFeedCached;
 
-        address lusdTokenCached = address(troveManagerCached.lusdToken());
-        checkContract(lusdTokenCached);
-        lusdToken = IERC20(lusdTokenCached);
+        address busdcTokenCached = address(troveManagerCached.busdcToken());
+        checkContract(busdcTokenCached);
+        busdcToken = IERC20(busdcTokenCached);
 
         address lqtyTokenCached = address(troveManagerCached.lqtyToken());
         checkContract(lqtyTokenCached);
@@ -68,7 +68,7 @@ contract BorrowerWrappersScript is BorrowerOperationsScript, ETHTransferScript, 
 
     function claimCollateralAndOpenTrove(
         uint _maxFee,
-        uint _LUSDAmount,
+        uint _BUSDCamount,
         address _upperHint,
         address _lowerHint,
         uint _backedAmount
@@ -87,7 +87,7 @@ contract BorrowerWrappersScript is BorrowerOperationsScript, ETHTransferScript, 
         uint totalCollateral = balanceAfter.sub(balanceBefore).add(_backedAmount);
 
         // Open trove with obtained collateral, plus collateral sent by user
-        borrowerOperations.openTrove(_maxFee, _LUSDAmount, _upperHint, _lowerHint, totalCollateral);
+        borrowerOperations.openTrove(_maxFee, _BUSDCamount, _upperHint, _lowerHint, totalCollateral);
     }
 
     function claimSPRewardsAndRecycle(uint _maxFee, address _upperHint, address _lowerHint) external {
@@ -101,14 +101,14 @@ contract BorrowerWrappersScript is BorrowerOperationsScript, ETHTransferScript, 
         uint lqtyBalanceAfter = lqtyToken.balanceOf(address(this));
         uint claimedCollateral = collBalanceAfter.sub(collBalanceBefore);
 
-        // Add claimed ETH to trove, get more LUSD and stake it into the Stability Pool
+        // Add claimed ETH to trove, get more BUSDC and stake it into the Stability Pool
         if (claimedCollateral > 0) {
             _requireUserHasTrove(address(this));
-            uint LUSDAmount = _getNetLUSDAmount(claimedCollateral);
-            borrowerOperations.adjustTrove(_maxFee, 0, LUSDAmount, true, _upperHint, _lowerHint, claimedCollateral);
-            // Provide withdrawn LUSD to Stability Pool
-            if (LUSDAmount > 0) {
-                stabilityPool.provideToSP(LUSDAmount, address(0));
+            uint BUSDCAmount = _getNetBUSDCAmount(claimedCollateral);
+            borrowerOperations.adjustTrove(_maxFee, 0, BUSDCAmount, true, _upperHint, _lowerHint, claimedCollateral);
+            // Provide withdrawn BUSDC to Stability Pool
+            if (BUSDCAmount > 0) {
+                stabilityPool.provideToSP(BUSDCAmount, address(0));
             }
         }
 
@@ -121,26 +121,26 @@ contract BorrowerWrappersScript is BorrowerOperationsScript, ETHTransferScript, 
 
     function claimStakingGainsAndRecycle(uint _maxFee, address _upperHint, address _lowerHint) external {
         uint collBalanceBefore = address(this).balance;
-        uint lusdBalanceBefore = lusdToken.balanceOf(address(this));
+        uint busdcBalanceBefore = busdcToken.balanceOf(address(this));
         uint lqtyBalanceBefore = lqtyToken.balanceOf(address(this));
 
         // Claim gains
         lqtyStaking.unstake(0);
 
         uint gainedCollateral = address(this).balance.sub(collBalanceBefore); // stack too deep issues :'(
-        uint gainedLUSD = lusdToken.balanceOf(address(this)).sub(lusdBalanceBefore);
+        uint gainedBUSDC = busdcToken.balanceOf(address(this)).sub(busdcBalanceBefore);
 
-        uint netLUSDAmount;
-        // Top up trove and get more LUSD, keeping ICR constant
+        uint netBUSDCAmount;
+        // Top up trove and get more BUSDC, keeping ICR constant
         if (gainedCollateral > 0) {
             _requireUserHasTrove(address(this));
-            netLUSDAmount = _getNetLUSDAmount(gainedCollateral);
-            borrowerOperations.adjustTrove(_maxFee, 0, netLUSDAmount, true, _upperHint, _lowerHint, gainedCollateral);
+            netBUSDCAmount = _getNetBUSDCAmount(gainedCollateral);
+            borrowerOperations.adjustTrove(_maxFee, 0, netBUSDCAmount, true, _upperHint, _lowerHint, gainedCollateral);
         }
 
-        uint totalLUSD = gainedLUSD.add(netLUSDAmount);
-        if (totalLUSD > 0) {
-            stabilityPool.provideToSP(totalLUSD, address(0));
+        uint totalBUSDC = gainedBUSDC.add(netBUSDCAmount);
+        if (totalBUSDC > 0) {
+            stabilityPool.provideToSP(totalBUSDC, address(0));
 
             // Providing to Stability Pool also triggers LQTY claim, so stake it if any
             uint lqtyBalanceAfter = lqtyToken.balanceOf(address(this));
@@ -151,13 +151,13 @@ contract BorrowerWrappersScript is BorrowerOperationsScript, ETHTransferScript, 
         }
     }
 
-    function _getNetLUSDAmount(uint _collateral) internal returns (uint) {
+    function _getNetBUSDCAmount(uint _collateral) internal returns (uint) {
         uint price = priceFeed.fetchPrice();
         uint ICR = troveManager.getCurrentICR(address(this), price);
 
-        uint LUSDAmount = _collateral.mul(price).div(ICR);
+        uint BUSDCAmount = _collateral.mul(price).div(ICR);
         uint borrowingRate = troveManager.getBorrowingRateWithDecay();
-        uint netDebt = LUSDAmount.mul(LiquityMath.DECIMAL_PRECISION).div(
+        uint netDebt = BUSDCAmount.mul(LiquityMath.DECIMAL_PRECISION).div(
             LiquityMath.DECIMAL_PRECISION.add(borrowingRate)
         );
 

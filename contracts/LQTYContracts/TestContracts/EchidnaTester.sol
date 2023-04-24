@@ -9,7 +9,7 @@ import "../DefaultPool.sol";
 import "../StabilityPool.sol";
 import "../GasPool.sol";
 import "../CollSurplusPool.sol";
-import "../LUSDToken.sol";
+import "../BUSDCToken.sol";
 import "./PriceFeedTestnet.sol";
 import "../SortedTroves.sol";
 import "./EchidnaProxy.sol";
@@ -28,7 +28,7 @@ contract EchidnaTester {
     uint private constant INITIAL_BALANCE = 1e24;
     uint private MCR;
     uint private CCR;
-    uint private LUSD_GAS_COMPENSATION;
+    uint private BUSDC_GAS_COMPENSATION;
 
     TroveManager public troveManager;
     BorrowerOperations public borrowerOperations;
@@ -37,7 +37,7 @@ contract EchidnaTester {
     StabilityPool public stabilityPool;
     GasPool public gasPool;
     CollSurplusPool public collSurplusPool;
-    LUSDToken public lusdToken;
+    BUSDCToken public busdcToken;
     PriceFeedTestnet priceFeedTestnet;
     SortedTroves sortedTroves;
     IERC20 public backedToken;
@@ -53,7 +53,7 @@ contract EchidnaTester {
         defaultPool = new DefaultPool();
         stabilityPool = new StabilityPool();
         gasPool = new GasPool();
-        lusdToken = new LUSDToken(address(troveManager), address(stabilityPool), address(borrowerOperations));
+        busdcToken = new BUSDCToken(address(troveManager), address(stabilityPool), address(borrowerOperations));
 
         collSurplusPool = new CollSurplusPool();
         priceFeedTestnet = new PriceFeedTestnet();
@@ -68,7 +68,7 @@ contract EchidnaTester {
             address(gasPool),
             address(collSurplusPool),
             address(priceFeedTestnet),
-            address(lusdToken),
+            address(busdcToken),
             address(sortedTroves),
             address(0),
             address(0)
@@ -83,7 +83,7 @@ contract EchidnaTester {
             address(collSurplusPool),
             address(priceFeedTestnet),
             address(sortedTroves),
-            address(lusdToken),
+            address(busdcToken),
             address(0),
             address(backedToken)
         );
@@ -102,7 +102,7 @@ contract EchidnaTester {
             address(borrowerOperations),
             address(troveManager),
             address(activePool),
-            address(lusdToken),
+            address(busdcToken),
             address(sortedTroves),
             address(priceFeedTestnet),
             address(0),
@@ -119,14 +119,14 @@ contract EchidnaTester {
         sortedTroves.setParams(1e18, address(troveManager), address(borrowerOperations));
 
         for (uint i = 0; i < NUMBER_OF_ACTORS; i++) {
-            echidnaProxies[i] = new EchidnaProxy(troveManager, borrowerOperations, stabilityPool, lusdToken);
+            echidnaProxies[i] = new EchidnaProxy(troveManager, borrowerOperations, stabilityPool, busdcToken);
             (bool success, ) = address(echidnaProxies[i]).call{value: INITIAL_BALANCE}("");
             require(success);
         }
 
         MCR = borrowerOperations.MCR();
         CCR = borrowerOperations.CCR();
-        LUSD_GAS_COMPENSATION = borrowerOperations.LUSD_GAS_COMPENSATION();
+        BUSDC_GAS_COMPENSATION = borrowerOperations.BUSDC_GAS_COMPENSATION();
         require(MCR > 0);
         require(CCR > 0);
 
@@ -153,7 +153,7 @@ contract EchidnaTester {
 
     function redeemCollateralExt(
         uint _i,
-        uint _LUSDAmount,
+        uint _BUSDCamount,
         address _firstRedemptionHint,
         address _upperPartialRedemptionHint,
         address _lowerPartialRedemptionHint,
@@ -161,7 +161,7 @@ contract EchidnaTester {
     ) external {
         uint actor = _i % NUMBER_OF_ACTORS;
         echidnaProxies[actor].redeemCollateralPrx(
-            _LUSDAmount,
+            _BUSDCamount,
             _firstRedemptionHint,
             _upperPartialRedemptionHint,
             _lowerPartialRedemptionHint,
@@ -176,37 +176,37 @@ contract EchidnaTester {
     function getAdjustedETH(uint actorBalance, uint _ETH, uint ratio) internal view returns (uint) {
         uint price = priceFeedTestnet.getPrice();
         require(price > 0);
-        uint minETH = ratio.mul(LUSD_GAS_COMPENSATION).div(price);
+        uint minETH = ratio.mul(BUSDC_GAS_COMPENSATION).div(price);
         require(actorBalance > minETH);
         uint ETH = minETH + (_ETH % (actorBalance - minETH));
         return ETH;
     }
 
-    function getAdjustedLUSD(uint ETH, uint _LUSDAmount, uint ratio) internal view returns (uint) {
+    function getAdjustedBUSDC(uint ETH, uint _BUSDCamount, uint ratio) internal view returns (uint) {
         uint price = priceFeedTestnet.getPrice();
-        uint LUSDAmount = _LUSDAmount;
-        uint compositeDebt = LUSDAmount.add(LUSD_GAS_COMPENSATION);
+        uint BUSDCAmount = _BUSDCamount;
+        uint compositeDebt = BUSDCAmount.add(BUSDC_GAS_COMPENSATION);
         uint ICR = LiquityMath._computeCR(ETH, compositeDebt, price);
         if (ICR < ratio) {
             compositeDebt = ETH.mul(price).div(ratio);
-            LUSDAmount = compositeDebt.sub(LUSD_GAS_COMPENSATION);
+            BUSDCAmount = compositeDebt.sub(BUSDC_GAS_COMPENSATION);
         }
-        return LUSDAmount;
+        return BUSDCAmount;
     }
 
-    function openTroveExt(uint _i, uint _ETH, uint _LUSDAmount) public payable {
+    function openTroveExt(uint _i, uint _ETH, uint _BUSDCamount) public payable {
         uint actor = _i % NUMBER_OF_ACTORS;
         EchidnaProxy echidnaProxy = echidnaProxies[actor];
         uint actorBalance = address(echidnaProxy).balance;
 
         // we pass in CCR instead of MCR in case it’s the first one
         uint ETH = getAdjustedETH(actorBalance, _ETH, CCR);
-        uint LUSDAmount = getAdjustedLUSD(ETH, _LUSDAmount, CCR);
+        uint BUSDCAmount = getAdjustedBUSDC(ETH, _BUSDCamount, CCR);
 
         //console.log('ETH', ETH);
-        //console.log('LUSDAmount', LUSDAmount);
+        //console.log('BUSDCAmount', BUSDCAmount);
 
-        echidnaProxy.openTrovePrx(ETH, LUSDAmount, address(0), address(0), 0);
+        echidnaProxy.openTrovePrx(ETH, BUSDCAmount, address(0), address(0), 0);
 
         numberOfTroves = troveManager.getTroveOwnersCount();
         assert(numberOfTroves > 0);
@@ -217,13 +217,13 @@ contract EchidnaTester {
     function openTroveRawExt(
         uint _i,
         uint _ETH,
-        uint _LUSDAmount,
+        uint _BUSDCamount,
         address _upperHint,
         address _lowerHint,
         uint _maxFee
     ) public payable {
         uint actor = _i % NUMBER_OF_ACTORS;
-        echidnaProxies[actor].openTrovePrx(_ETH, _LUSDAmount, _upperHint, _lowerHint, _maxFee);
+        echidnaProxies[actor].openTrovePrx(_ETH, _BUSDCamount, _upperHint, _lowerHint, _maxFee);
     }
 
     function addCollExt(uint _i, uint _ETH) external payable {
@@ -252,7 +252,7 @@ contract EchidnaTester {
         echidnaProxies[actor].withdrawCollPrx(_amount, _upperHint, _lowerHint, _backedAmount);
     }
 
-    function withdrawLUSDExt(
+    function withdrawBUSDCExt(
         uint _i,
         uint _amount,
         address _upperHint,
@@ -261,12 +261,12 @@ contract EchidnaTester {
         uint _backedAmount
     ) external {
         uint actor = _i % NUMBER_OF_ACTORS;
-        echidnaProxies[actor].withdrawLUSDPrx(_amount, _upperHint, _lowerHint, _maxFee, _backedAmount);
+        echidnaProxies[actor].withdrawBUSDCPrx(_amount, _upperHint, _lowerHint, _maxFee, _backedAmount);
     }
 
-    function repayLUSDExt(uint _i, uint _amount, address _upperHint, address _lowerHint, uint _backedAmount) external {
+    function repayBUSDCExt(uint _i, uint _amount, address _upperHint, address _lowerHint, uint _backedAmount) external {
         uint actor = _i % NUMBER_OF_ACTORS;
-        echidnaProxies[actor].repayLUSDPrx(_amount, _upperHint, _lowerHint, _backedAmount);
+        echidnaProxies[actor].repayBUSDCPrx(_amount, _upperHint, _lowerHint, _backedAmount);
     }
 
     function closeTroveExt(uint _i) external {
@@ -289,7 +289,7 @@ contract EchidnaTester {
         uint debtChange = _debtChange;
         if (_isDebtIncrease) {
             // TODO: add current amount already withdrawn:
-            debtChange = getAdjustedLUSD(ETH, uint(_debtChange), MCR);
+            debtChange = getAdjustedBUSDC(ETH, uint(_debtChange), MCR);
         }
         // TODO: collWithdrawal, debtChange
         echidnaProxy.adjustTrovePrx(ETH, _collWithdrawal, debtChange, _isDebtIncrease, address(0), address(0), 0);
@@ -329,7 +329,7 @@ contract EchidnaTester {
         echidnaProxies[actor].withdrawFromSPPrx(_amount);
     }
 
-    // LUSD Token
+    // BUSDC Token
 
     function transferExt(uint _i, address recipient, uint256 amount) external returns (bool) {
         uint actor = _i % NUMBER_OF_ACTORS;
@@ -416,7 +416,7 @@ contract EchidnaTester {
             //else return false;
 
             // Minimum debt (gas compensation)
-            if (troveManager.getTroveDebt(currentTrove) < LUSD_GAS_COMPENSATION) {
+            if (troveManager.getTroveDebt(currentTrove) < BUSDC_GAS_COMPENSATION) {
                 return false;
             }
             // Uncomment to check that the condition is meaningful
@@ -455,7 +455,7 @@ contract EchidnaTester {
             return false;
         }
 
-        if (address(lusdToken).balance > 0) {
+        if (address(busdcToken).balance > 0) {
             return false;
         }
 
@@ -483,22 +483,22 @@ contract EchidnaTester {
         return true;
     }
 
-    // Total LUSD matches
-    function echidna_LUSD_global_balances() public view returns (bool) {
-        uint totalSupply = lusdToken.totalSupply();
-        uint gasPoolBalance = lusdToken.balanceOf(address(gasPool));
+    // Total BUSDC matches
+    function echidna_BUSDC_global_balances() public view returns (bool) {
+        uint totalSupply = busdcToken.totalSupply();
+        uint gasPoolBalance = busdcToken.balanceOf(address(gasPool));
 
-        uint activePoolBalance = activePool.getLUSDDebt();
-        uint defaultPoolBalance = defaultPool.getLUSDDebt();
+        uint activePoolBalance = activePool.getBUSDCDebt();
+        uint defaultPoolBalance = defaultPool.getBUSDCDebt();
         if (totalSupply != activePoolBalance + defaultPoolBalance) {
             return false;
         }
 
-        uint stabilityPoolBalance = stabilityPool.getTotalLUSDDeposits();
+        uint stabilityPoolBalance = stabilityPool.getTotalBUSDCDeposits();
         address currentTrove = sortedTroves.getFirst();
         uint trovesBalance;
         while (currentTrove != address(0)) {
-            trovesBalance += lusdToken.balanceOf(address(currentTrove));
+            trovesBalance += busdcToken.balanceOf(address(currentTrove));
             currentTrove = sortedTroves.getNext(currentTrove);
         }
         // we cannot state equality because tranfers are made to external addresses too

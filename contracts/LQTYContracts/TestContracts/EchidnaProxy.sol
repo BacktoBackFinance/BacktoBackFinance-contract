@@ -5,24 +5,24 @@ pragma solidity 0.6.11;
 import "../TroveManager.sol";
 import "../BorrowerOperations.sol";
 import "../StabilityPool.sol";
-import "../LUSDToken.sol";
+import "../BUSDCToken.sol";
 
 contract EchidnaProxy {
     TroveManager troveManager;
     BorrowerOperations borrowerOperations;
     StabilityPool stabilityPool;
-    LUSDToken lusdToken;
+    BUSDCToken busdcToken;
 
     constructor(
         TroveManager _troveManager,
         BorrowerOperations _borrowerOperations,
         StabilityPool _stabilityPool,
-        LUSDToken _lusdToken
+        BUSDCToken _busdcToken
     ) public {
         troveManager = _troveManager;
         borrowerOperations = _borrowerOperations;
         stabilityPool = _stabilityPool;
-        lusdToken = _lusdToken;
+        busdcToken = _busdcToken;
     }
 
     // TroveManager
@@ -40,7 +40,7 @@ contract EchidnaProxy {
     }
 
     function redeemCollateralPrx(
-        uint _LUSDAmount,
+        uint _BUSDCamount,
         address _firstRedemptionHint,
         address _upperPartialRedemptionHint,
         address _lowerPartialRedemptionHint,
@@ -49,7 +49,7 @@ contract EchidnaProxy {
         uint _maxFee
     ) external {
         troveManager.redeemCollateral(
-            _LUSDAmount,
+            _BUSDCamount,
             _firstRedemptionHint,
             _upperPartialRedemptionHint,
             _lowerPartialRedemptionHint,
@@ -62,12 +62,12 @@ contract EchidnaProxy {
     // Borrower Operations
     function openTrovePrx(
         uint _backedAmount,
-        uint _LUSDAmount,
+        uint _BUSDCamount,
         address _upperHint,
         address _lowerHint,
         uint _maxFee
     ) external {
-        borrowerOperations.openTrove(_maxFee, _LUSDAmount, _upperHint, _lowerHint, _backedAmount);
+        borrowerOperations.openTrove(_maxFee, _BUSDCamount, _upperHint, _lowerHint, _backedAmount);
     }
 
     function addCollPrx(uint _backedAmount, address _upperHint, address _lowerHint) external {
@@ -78,18 +78,18 @@ contract EchidnaProxy {
         borrowerOperations.withdrawColl(_amount, _upperHint, _lowerHint, _backedAmount);
     }
 
-    function withdrawLUSDPrx(
+    function withdrawBUSDCPrx(
         uint _amount,
         address _upperHint,
         address _lowerHint,
         uint _maxFee,
         uint _backedAmount
     ) external {
-        borrowerOperations.withdrawLUSD(_maxFee, _amount, _upperHint, _lowerHint, _backedAmount);
+        borrowerOperations.withdrawBUSDC(_maxFee, _amount, _upperHint, _lowerHint, _backedAmount);
     }
 
-    function repayLUSDPrx(uint _amount, address _upperHint, address _lowerHint, uint _backedAmount) external {
-        borrowerOperations.repayLUSD(_amount, _upperHint, _lowerHint, _backedAmount);
+    function repayBUSDCPrx(uint _amount, address _upperHint, address _lowerHint, uint _backedAmount) external {
+        borrowerOperations.repayBUSDC(_amount, _upperHint, _lowerHint, _backedAmount);
     }
 
     function closeTrovePrx() external {
@@ -125,25 +125,25 @@ contract EchidnaProxy {
         stabilityPool.withdrawFromSP(_amount);
     }
 
-    // LUSD Token
+    // BUSDC Token
 
     function transferPrx(address recipient, uint256 amount) external returns (bool) {
-        return lusdToken.transfer(recipient, amount);
+        return busdcToken.transfer(recipient, amount);
     }
 
     function approvePrx(address spender, uint256 amount) external returns (bool) {
-        return lusdToken.approve(spender, amount);
+        return busdcToken.approve(spender, amount);
     }
 
     function transferFromPrx(address sender, address recipient, uint256 amount) external returns (bool) {
-        return lusdToken.transferFrom(sender, recipient, amount);
+        return busdcToken.transferFrom(sender, recipient, amount);
     }
 
     function increaseAllowancePrx(address spender, uint256 addedValue) external returns (bool) {
-        return lusdToken.increaseAllowance(spender, addedValue);
+        return busdcToken.increaseAllowance(spender, addedValue);
     }
 
     function decreaseAllowancePrx(address spender, uint256 subtractedValue) external returns (bool) {
-        return lusdToken.decreaseAllowance(spender, subtractedValue);
+        return busdcToken.decreaseAllowance(spender, subtractedValue);
     }
 }

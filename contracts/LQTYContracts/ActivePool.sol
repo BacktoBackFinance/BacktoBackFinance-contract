@@ -11,9 +11,9 @@ import "./Dependencies/console.sol";
 import "./Dependencies/IERC20.sol";
 
 /*
- * The Active Pool holds the ETH collateral and LUSD debt (but not LUSD tokens) for all active troves.
+ * The Active Pool holds the ETH collateral and BUSDC debt (but not BUSDC tokens) for all active troves.
  *
- * When a trove is liquidated, it's ETH and LUSD debt are transferred from the Active Pool, to either the
+ * When a trove is liquidated, it's ETH and BUSDC debt are transferred from the Active Pool, to either the
  * Stability Pool, the Default Pool, or both, depending on the liquidation conditions.
  *
  */
@@ -28,13 +28,13 @@ contract ActivePool is Ownable, CheckContract, IActivePool {
     address public defaultPoolAddress;
     address public backedTokenAddress;
     uint256 internal ETH; // deposited ether tracker
-    uint256 internal LUSDDebt;
+    uint256 internal BUSDCDebt;
 
     // --- Events ---
 
     event BorrowerOperationsAddressChanged(address _newBorrowerOperationsAddress);
     event TroveManagerAddressChanged(address _newTroveManagerAddress);
-    event ActivePoolLUSDDebtUpdated(uint _LUSDDebt);
+    event ActivePoolBUSDCDebtUpdated(uint _BUSDCDebt);
     event ActivePoolETHBalanceUpdated(uint _ETH);
 
     // --- Contract setters ---
@@ -77,8 +77,8 @@ contract ActivePool is Ownable, CheckContract, IActivePool {
         return ETH;
     }
 
-    function getLUSDDebt() external view override returns (uint) {
-        return LUSDDebt;
+    function getBUSDCDebt() external view override returns (uint) {
+        return BUSDCDebt;
     }
 
     // --- Pool functionality ---
@@ -96,16 +96,16 @@ contract ActivePool is Ownable, CheckContract, IActivePool {
         }
     }
 
-    function increaseLUSDDebt(uint _amount) external override {
+    function increaseBUSDCDebt(uint _amount) external override {
         _requireCallerIsBOorTroveM();
-        LUSDDebt = LUSDDebt.add(_amount);
-        ActivePoolLUSDDebtUpdated(LUSDDebt);
+        BUSDCDebt = BUSDCDebt.add(_amount);
+        ActivePoolBUSDCDebtUpdated(BUSDCDebt);
     }
 
-    function decreaseLUSDDebt(uint _amount) external override {
+    function decreaseBUSDCDebt(uint _amount) external override {
         _requireCallerIsBOorTroveMorSP();
-        LUSDDebt = LUSDDebt.sub(_amount);
-        ActivePoolLUSDDebtUpdated(LUSDDebt);
+        BUSDCDebt = BUSDCDebt.sub(_amount);
+        ActivePoolBUSDCDebtUpdated(BUSDCDebt);
     }
 
     // --- 'require' functions ---
