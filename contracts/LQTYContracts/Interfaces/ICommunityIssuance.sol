@@ -2,19 +2,19 @@
 
 pragma solidity 0.6.11;
 
-interface ICommunityIssuance { 
-    
+interface ICommunityIssuance {
+
     // --- Events ---
-    
-    event LQTYTokenAddressSet(address _lqtyTokenAddress);
+
+    event B2BTokenAddressSet(address _b2bTokenAddress);
     event StabilityPoolAddressSet(address _stabilityPoolAddress);
-    event TotalLQTYIssuedUpdated(uint _totalLQTYIssued);
+    event TotalB2BIssuedUpdated(uint _totalB2BIssued);
 
     // --- Functions ---
 
-    function setAddresses(address _lqtyTokenAddress, address _stabilityPoolAddress) external;
+    function setAddresses(address _b2bTokenAddress, address _stabilityPoolAddress) external;
 
-    function issueLQTY() external returns (uint);
+    function issueB2B() external returns (uint);
 
-    function sendLQTY(address _account, uint _LQTYamount) external;
+    function sendB2B(address _account, uint _B2Bamount) external;
 }

@@ -131,19 +131,19 @@ import "./Dependencies/IERC20.sol";
  * https://github.com/liquity/liquity/blob/master/papers/Scalable_Reward_Distribution_with_Compounding_Stakes.pdf
  *
  *
- * --- LQTY ISSUANCE TO STABILITY POOL DEPOSITORS ---
+ * --- B2B ISSUANCE TO STABILITY POOL DEPOSITORS ---
  *
- * An LQTY issuance event occurs at every deposit operation, and every liquidation.
+ * An B2B issuance event occurs at every deposit operation, and every liquidation.
  *
  * Each deposit is tagged with the address of the front end through which it was made.
  *
- * All deposits earn a share of the issued LQTY in proportion to the deposit as a share of total deposits. The LQTY earned
+ * All deposits earn a share of the issued B2B in proportion to the deposit as a share of total deposits. The B2B earned
  * by a given deposit, is split between the depositor and the front end through which the deposit was made, based on the front end's kickbackRate.
  *
  * Please see the system Readme for an overview:
- * https://github.com/liquity/dev/blob/main/README.md#lqty-issuance-to-stability-providers
+ * https://github.com/liquity/dev/blob/main/README.md#b2b-issuance-to-stability-providers
  *
- * We use the same mathematical product-sum approach to track LQTY gains for depositors, where 'G' is the sum corresponding to LQTY gains.
+ * We use the same mathematical product-sum approach to track B2B gains for depositors, where 'G' is the sum corresponding to B2B gains.
  * The product P (and snapshot P_t) is re-used, as the ratio P/P_t tracks a deposit's depletion due to liquidations.
  *
  */
@@ -224,16 +224,16 @@ contract StabilityPool is LiquityBase, Ownable, CheckContract, IStabilityPool {
     mapping(uint128 => mapping(uint128 => uint)) public epochToScaleToSum;
 
     /*
-     * Similarly, the sum 'G' is used to calculate LQTY gains. During it's lifetime, each deposit d_t earns a LQTY gain of
+     * Similarly, the sum 'G' is used to calculate B2B gains. During it's lifetime, each deposit d_t earns a B2B gain of
      *  ( d_t * [G - G_t] )/P_t, where G_t is the depositor's snapshot of G taken at time t when  the deposit was made.
      *
-     *  LQTY reward events occur are triggered by depositor operations (new deposit, topup, withdrawal), and liquidations.
-     *  In each case, the LQTY reward is issued (i.e. G is updated), before other state changes are made.
+     *  B2B reward events occur are triggered by depositor operations (new deposit, topup, withdrawal), and liquidations.
+     *  In each case, the B2B reward is issued (i.e. G is updated), before other state changes are made.
      */
     mapping(uint128 => mapping(uint128 => uint)) public epochToScaleToG;
 
-    // Error tracker for the error correction in the LQTY issuance calculation
-    uint public lastLQTYError;
+    // Error tracker for the error correction in the B2B issuance calculation
+    uint public lastB2BError;
     // Error trackers for the error correction in the offset calculation
     uint public lastETHError_Offset;
     uint public lastBUSDCLossError_Offset;
@@ -267,8 +267,8 @@ contract StabilityPool is LiquityBase, Ownable, CheckContract, IStabilityPool {
     event FrontEndStakeChanged(address indexed _frontEnd, uint _newFrontEndStake, address _depositor);
 
     event ETHGainWithdrawn(address indexed _depositor, uint _ETH, uint _BUSDCLoss);
-    event LQTYPaidToDepositor(address indexed _depositor, uint _LQTY);
-    event LQTYPaidToFrontEnd(address indexed _frontEnd, uint _LQTY);
+    event B2BPaidToDepositor(address indexed _depositor, uint _B2B);
+    event B2BPaidToFrontEnd(address indexed _frontEnd, uint _B2B);
     event EtherSent(address _to, uint _amount);
 
     // --- Contract setters ---
@@ -326,10 +326,10 @@ contract StabilityPool is LiquityBase, Ownable, CheckContract, IStabilityPool {
 
     /*  provideToSP():
      *
-     * - Triggers a LQTY issuance, based on time passed since the last issuance. The LQTY issuance is shared between *all* depositors and front ends
+     * - Triggers a B2B issuance, based on time passed since the last issuance. The B2B issuance is shared between *all* depositors and front ends
      * - Tags the deposit with the provided front end tag param, if it's a new deposit
-     * - Sends depositor's accumulated gains (LQTY, ETH) to depositor
-     * - Sends the tagged front end's accumulated LQTY gains to the tagged front end
+     * - Sends depositor's accumulated gains (B2B, ETH) to depositor
+     * - Sends the tagged front end's accumulated B2B gains to the tagged front end
      * - Increases deposit and tagged front end's stake, and takes new snapshots for each.
      */
     function provideToSP(uint _amount, address _frontEndTag) external override {
@@ -341,7 +341,7 @@ contract StabilityPool is LiquityBase, Ownable, CheckContract, IStabilityPool {
 
         ICommunityIssuance communityIssuanceCached = communityIssuance;
 
-        _triggerLQTYIssuance(communityIssuanceCached);
+        _triggerB2BIssuance(communityIssuanceCached);
 
         if (initialDeposit == 0) {
             _setFrontEndTag(msg.sender, _frontEndTag);
@@ -350,9 +350,9 @@ contract StabilityPool is LiquityBase, Ownable, CheckContract, IStabilityPool {
         uint compoundedBUSDCDeposit = getCompoundedBUSDCDeposit(msg.sender);
         uint BUSDCLoss = initialDeposit.sub(compoundedBUSDCDeposit); // Needed only for event log
 
-        // First pay out any LQTY gains
+        // First pay out any B2B gains
         address frontEnd = deposits[msg.sender].frontEndTag;
-        _payOutLQTYGains(communityIssuanceCached, msg.sender, frontEnd);
+        _payOutB2BGains(communityIssuanceCached, msg.sender, frontEnd);
 
         // Update front end stake
         uint compoundedFrontEndStake = getCompoundedFrontEndStake(frontEnd);
@@ -373,10 +373,10 @@ contract StabilityPool is LiquityBase, Ownable, CheckContract, IStabilityPool {
 
     /*  withdrawFromSP():
      *
-     * - Triggers a LQTY issuance, based on time passed since the last issuance. The LQTY issuance is shared between *all* depositors and front ends
+     * - Triggers a B2B issuance, based on time passed since the last issuance. The B2B issuance is shared between *all* depositors and front ends
      * - Removes the deposit's front end tag if it is a full withdrawal
-     * - Sends all depositor's accumulated gains (LQTY, ETH) to depositor
-     * - Sends the tagged front end's accumulated LQTY gains to the tagged front end
+     * - Sends all depositor's accumulated gains (B2B, ETH) to depositor
+     * - Sends the tagged front end's accumulated B2B gains to the tagged front end
      * - Decreases deposit and tagged front end's stake, and takes new snapshots for each.
      *
      * If _amount > userDeposit, the user withdraws all of their compounded deposit.
@@ -390,7 +390,7 @@ contract StabilityPool is LiquityBase, Ownable, CheckContract, IStabilityPool {
 
         ICommunityIssuance communityIssuanceCached = communityIssuance;
 
-        _triggerLQTYIssuance(communityIssuanceCached);
+        _triggerB2BIssuance(communityIssuanceCached);
 
         uint depositorETHGain = getDepositorETHGain(msg.sender);
 
@@ -398,9 +398,9 @@ contract StabilityPool is LiquityBase, Ownable, CheckContract, IStabilityPool {
         uint BUSDCtoWithdraw = LiquityMath._min(_amount, compoundedBUSDCDeposit);
         uint BUSDCLoss = initialDeposit.sub(compoundedBUSDCDeposit); // Needed only for event log
 
-        // First pay out any LQTY gains
+        // First pay out any B2B gains
         address frontEnd = deposits[msg.sender].frontEndTag;
-        _payOutLQTYGains(communityIssuanceCached, msg.sender, frontEnd);
+        _payOutB2BGains(communityIssuanceCached, msg.sender, frontEnd);
 
         // Update front end stake
         uint compoundedFrontEndStake = getCompoundedFrontEndStake(frontEnd);
@@ -421,9 +421,9 @@ contract StabilityPool is LiquityBase, Ownable, CheckContract, IStabilityPool {
     }
 
     /* withdrawETHGainToTrove:
-     * - Triggers a LQTY issuance, based on time passed since the last issuance. The LQTY issuance is shared between *all* depositors and front ends
-     * - Sends all depositor's LQTY gain to  depositor
-     * - Sends all tagged front end's LQTY gain to the tagged front end
+     * - Triggers a B2B issuance, based on time passed since the last issuance. The B2B issuance is shared between *all* depositors and front ends
+     * - Sends all depositor's B2B gain to  depositor
+     * - Sends all tagged front end's B2B gain to the tagged front end
      * - Transfers the depositor's entire ETH gain from the Stability Pool to the caller's trove
      * - Leaves their compounded deposit in the Stability Pool
      * - Updates snapshots for deposit and tagged front end stake */
@@ -435,16 +435,16 @@ contract StabilityPool is LiquityBase, Ownable, CheckContract, IStabilityPool {
 
         ICommunityIssuance communityIssuanceCached = communityIssuance;
 
-        _triggerLQTYIssuance(communityIssuanceCached);
+        _triggerB2BIssuance(communityIssuanceCached);
 
         uint depositorETHGain = getDepositorETHGain(msg.sender);
 
         uint compoundedBUSDCDeposit = getCompoundedBUSDCDeposit(msg.sender);
         uint BUSDCLoss = initialDeposit.sub(compoundedBUSDCDeposit); // Needed only for event log
 
-        // First pay out any LQTY gains
+        // First pay out any B2B gains
         address frontEnd = deposits[msg.sender].frontEndTag;
-        _payOutLQTYGains(communityIssuanceCached, msg.sender, frontEnd);
+        _payOutB2BGains(communityIssuanceCached, msg.sender, frontEnd);
 
         // Update front end stake
         uint compoundedFrontEndStake = getCompoundedFrontEndStake(frontEnd);
@@ -467,36 +467,36 @@ contract StabilityPool is LiquityBase, Ownable, CheckContract, IStabilityPool {
         borrowerOperations.moveETHGainToTrove(msg.sender, _upperHint, _lowerHint, depositorETHGain);
     }
 
-    // --- LQTY issuance functions ---
+    // --- B2B issuance functions ---
 
-    function _triggerLQTYIssuance(ICommunityIssuance _communityIssuance) internal {
-        uint LQTYIssuance = _communityIssuance.issueLQTY();
-        _updateG(LQTYIssuance);
+    function _triggerB2BIssuance(ICommunityIssuance _communityIssuance) internal {
+        uint B2BIssuance = _communityIssuance.issueB2B();
+        _updateG(B2BIssuance);
     }
 
-    function _updateG(uint _LQTYIssuance) internal {
+    function _updateG(uint _B2BIssuance) internal {
         uint totalBUSDC = totalBUSDCDeposits; // cached to save an SLOAD
         /*
-         * When total deposits is 0, G is not updated. In this case, the LQTY issued can not be obtained by later
+         * When total deposits is 0, G is not updated. In this case, the B2B issued can not be obtained by later
          * depositors - it is missed out on, and remains in the balanceof the CommunityIssuance contract.
          *
          */
-        if (totalBUSDC == 0 || _LQTYIssuance == 0) {
+        if (totalBUSDC == 0 || _B2BIssuance == 0) {
             return;
         }
 
-        uint LQTYPerUnitStaked;
-        LQTYPerUnitStaked = _computeLQTYPerUnitStaked(_LQTYIssuance, totalBUSDC);
+        uint B2BPerUnitStaked;
+        B2BPerUnitStaked = _computeB2BPerUnitStaked(_B2BIssuance, totalBUSDC);
 
-        uint marginalLQTYGain = LQTYPerUnitStaked.mul(P);
-        epochToScaleToG[currentEpoch][currentScale] = epochToScaleToG[currentEpoch][currentScale].add(marginalLQTYGain);
+        uint marginalB2BGain = B2BPerUnitStaked.mul(P);
+        epochToScaleToG[currentEpoch][currentScale] = epochToScaleToG[currentEpoch][currentScale].add(marginalB2BGain);
 
         emit G_Updated(epochToScaleToG[currentEpoch][currentScale], currentEpoch, currentScale);
     }
 
-    function _computeLQTYPerUnitStaked(uint _LQTYIssuance, uint _totalBUSDCDeposits) internal returns (uint) {
+    function _computeB2BPerUnitStaked(uint _B2BIssuance, uint _totalBUSDCDeposits) internal returns (uint) {
         /*
-         * Calculate the LQTY-per-unit staked.  Division uses a "feedback" error correction, to keep the
+         * Calculate the B2B-per-unit staked.  Division uses a "feedback" error correction, to keep the
          * cumulative error low in the running total G:
          *
          * 1) Form a numerator which compensates for the floor division error that occurred the last time this
@@ -506,12 +506,12 @@ contract StabilityPool is LiquityBase, Ownable, CheckContract, IStabilityPool {
          * 4) Store this error for use in the next correction when this function is called.
          * 5) Note: static analysis tools complain about this "division before multiplication", however, it is intended.
          */
-        uint LQTYNumerator = _LQTYIssuance.mul(DECIMAL_PRECISION).add(lastLQTYError);
+        uint B2BNumerator = _B2BIssuance.mul(DECIMAL_PRECISION).add(lastB2BError);
 
-        uint LQTYPerUnitStaked = LQTYNumerator.div(_totalBUSDCDeposits);
-        lastLQTYError = LQTYNumerator.sub(LQTYPerUnitStaked.mul(_totalBUSDCDeposits));
+        uint B2BPerUnitStaked = B2BNumerator.div(_totalBUSDCDeposits);
+        lastB2BError = B2BNumerator.sub(B2BPerUnitStaked.mul(_totalBUSDCDeposits));
 
-        return LQTYPerUnitStaked;
+        return B2BPerUnitStaked;
     }
 
     // --- Liquidation functions ---
@@ -528,7 +528,7 @@ contract StabilityPool is LiquityBase, Ownable, CheckContract, IStabilityPool {
             return;
         }
 
-        _triggerLQTYIssuance(communityIssuance);
+        _triggerB2BIssuance(communityIssuance);
 
         (uint ETHGainPerUnitStaked, uint BUSDCLossPerUnitStaked) = _computeRewardsPerUnitStaked(
             _collToAdd,
@@ -691,12 +691,12 @@ contract StabilityPool is LiquityBase, Ownable, CheckContract, IStabilityPool {
     }
 
     /*
-     * Calculate the LQTY gain earned by a deposit since its last snapshots were taken.
-     * Given by the formula:  LQTY = d0 * (G - G(0))/P(0)
+     * Calculate the B2B gain earned by a deposit since its last snapshots were taken.
+     * Given by the formula:  B2B = d0 * (G - G(0))/P(0)
      * where G(0) and P(0) are the depositor's snapshots of the sum G and product P, respectively.
      * d0 is the last recorded deposit value.
      */
-    function getDepositorLQTYGain(address _depositor) public view override returns (uint) {
+    function getDepositorB2BGain(address _depositor) public view override returns (uint) {
         uint initialDeposit = deposits[_depositor].initialValue;
         if (initialDeposit == 0) {
             return 0;
@@ -713,18 +713,18 @@ contract StabilityPool is LiquityBase, Ownable, CheckContract, IStabilityPool {
 
         Snapshots memory snapshots = depositSnapshots[_depositor];
 
-        uint LQTYGain = kickbackRate.mul(_getLQTYGainFromSnapshots(initialDeposit, snapshots)).div(DECIMAL_PRECISION);
+        uint B2BGain = kickbackRate.mul(_getB2BGainFromSnapshots(initialDeposit, snapshots)).div(DECIMAL_PRECISION);
 
-        return LQTYGain;
+        return B2BGain;
     }
 
     /*
-     * Return the LQTY gain earned by the front end. Given by the formula:  E = D0 * (G - G(0))/P(0)
+     * Return the B2B gain earned by the front end. Given by the formula:  E = D0 * (G - G(0))/P(0)
      * where G(0) and P(0) are the depositor's snapshots of the sum G and product P, respectively.
      *
      * D0 is the last recorded value of the front end's total tagged deposits.
      */
-    function getFrontEndLQTYGain(address _frontEnd) public view override returns (uint) {
+    function getFrontEndB2BGain(address _frontEnd) public view override returns (uint) {
         uint frontEndStake = frontEndStakes[_frontEnd];
         if (frontEndStake == 0) {
             return 0;
@@ -735,14 +735,14 @@ contract StabilityPool is LiquityBase, Ownable, CheckContract, IStabilityPool {
 
         Snapshots memory snapshots = frontEndSnapshots[_frontEnd];
 
-        uint LQTYGain = frontEndShare.mul(_getLQTYGainFromSnapshots(frontEndStake, snapshots)).div(DECIMAL_PRECISION);
-        return LQTYGain;
+        uint B2BGain = frontEndShare.mul(_getB2BGainFromSnapshots(frontEndStake, snapshots)).div(DECIMAL_PRECISION);
+        return B2BGain;
     }
 
-    function _getLQTYGainFromSnapshots(uint initialStake, Snapshots memory snapshots) internal view returns (uint) {
+    function _getB2BGainFromSnapshots(uint initialStake, Snapshots memory snapshots) internal view returns (uint) {
         /*
-         * Grab the sum 'G' from the epoch at which the stake was made. The LQTY gain may span up to one scale change.
-         * If it does, the second portion of the LQTY gain is scaled by 1e9.
+         * Grab the sum 'G' from the epoch at which the stake was made. The B2B gain may span up to one scale change.
+         * If it does, the second portion of the B2B gain is scaled by 1e9.
          * If the gain spans no scale change, the second portion will be 0.
          */
         uint128 epochSnapshot = snapshots.epoch;
@@ -753,9 +753,9 @@ contract StabilityPool is LiquityBase, Ownable, CheckContract, IStabilityPool {
         uint firstPortion = epochToScaleToG[epochSnapshot][scaleSnapshot].sub(G_Snapshot);
         uint secondPortion = epochToScaleToG[epochSnapshot][scaleSnapshot.add(1)].div(SCALE_FACTOR);
 
-        uint LQTYGain = initialStake.mul(firstPortion.add(secondPortion)).div(P_Snapshot).div(DECIMAL_PRECISION);
+        uint B2BGain = initialStake.mul(firstPortion.add(secondPortion)).div(P_Snapshot).div(DECIMAL_PRECISION);
 
-        return LQTYGain;
+        return B2BGain;
     }
 
     // --- Compounded deposit and compounded front end stake ---
@@ -841,7 +841,7 @@ contract StabilityPool is LiquityBase, Ownable, CheckContract, IStabilityPool {
         return compoundedStake;
     }
 
-    // --- Sender functions for BUSDC deposit, ETH gains and LQTY gains ---
+    // --- Sender functions for BUSDC deposit, ETH gains and B2B gains ---
 
     // Transfer the BUSDC tokens from the user to the Stability Pool's address, and update its recorded BUSDC
     function _sendBUSDCtoStabilityPool(address _address, uint _amount) internal {
@@ -950,18 +950,18 @@ contract StabilityPool is LiquityBase, Ownable, CheckContract, IStabilityPool {
         emit FrontEndSnapshotUpdated(_frontEnd, currentP, currentG);
     }
 
-    function _payOutLQTYGains(ICommunityIssuance _communityIssuance, address _depositor, address _frontEnd) internal {
-        // Pay out front end's LQTY gain
+    function _payOutB2BGains(ICommunityIssuance _communityIssuance, address _depositor, address _frontEnd) internal {
+        // Pay out front end's B2B gain
         if (_frontEnd != address(0)) {
-            uint frontEndLQTYGain = getFrontEndLQTYGain(_frontEnd);
-            _communityIssuance.sendLQTY(_frontEnd, frontEndLQTYGain);
-            emit LQTYPaidToFrontEnd(_frontEnd, frontEndLQTYGain);
+            uint frontEndB2BGain = getFrontEndB2BGain(_frontEnd);
+            _communityIssuance.sendB2B(_frontEnd, frontEndB2BGain);
+            emit B2BPaidToFrontEnd(_frontEnd, frontEndB2BGain);
         }
 
-        // Pay out depositor's LQTY gain
-        uint depositorLQTYGain = getDepositorLQTYGain(_depositor);
-        _communityIssuance.sendLQTY(_depositor, depositorLQTYGain);
-        emit LQTYPaidToDepositor(_depositor, depositorLQTYGain);
+        // Pay out depositor's B2B gain
+        uint depositorB2BGain = getDepositorB2BGain(_depositor);
+        _communityIssuance.sendB2B(_depositor, depositorB2BGain);
+        emit B2BPaidToDepositor(_depositor, depositorB2BGain);
     }
 
     // --- 'require' functions ---

@@ -40,7 +40,7 @@ const deployFunction: DeployFunction = async function ({
     const priceFeedAddress = (await deployments.get('BackedOracleProxy')).address;
     const sortedTrovesAddress = (await deployments.get('SortedTroves')).address;
     const busdcTokenAddress = (await deployments.get('BUSDCToken')).address;
-    const lqtyStakingAddress = (await deployments.get('LQTYStaking')).address;
+    const b2bStakingAddress = (await deployments.get('B2BStaking')).address;
     const backedTokenAddress = (await deployments.get('BackedToken')).address;
     const tx = await borrowerOperationsContract.setAddresses(
       troveManagerAddress,
@@ -52,7 +52,7 @@ const deployFunction: DeployFunction = async function ({
       priceFeedAddress,
       sortedTrovesAddress,
       busdcTokenAddress,
-      lqtyStakingAddress,
+      b2bStakingAddress,
       backedTokenAddress
     );
     await tx.wait();
@@ -74,8 +74,8 @@ const deployFunction: DeployFunction = async function ({
     const priceFeedAddress = (await deployments.get('BackedOracleProxy')).address;
     const busdcTokenAddress = (await deployments.get('BUSDCToken')).address;
     const sortedTrovesAddress = (await deployments.get('SortedTroves')).address;
-    const lqtyTokenAddress = (await deployments.get('LQTYToken')).address;
-    const lqtyStakingAddress = (await deployments.get('LQTYStaking')).address;
+    const b2bTokenAddress = (await deployments.get('B2BToken')).address;
+    const b2bStakingAddress = (await deployments.get('B2BStaking')).address;
     const tx = await troveManagerContract.setAddresses(
       borrowerOperationsAddress,
       activePoolAddress,
@@ -86,8 +86,8 @@ const deployFunction: DeployFunction = async function ({
       priceFeedAddress,
       busdcTokenAddress,
       sortedTrovesAddress,
-      lqtyTokenAddress,
-      lqtyStakingAddress
+      b2bTokenAddress,
+      b2bStakingAddress
     );
     await tx.wait();
   }
@@ -127,9 +127,9 @@ const deployFunction: DeployFunction = async function ({
     ).address
   );
   if ((await communityIssuanceContract.owner()) === deployer) {
-    const lqtyTokenAddress = (await deployments.get('LQTYToken')).address;
+    const b2bTokenAddress = (await deployments.get('B2BToken')).address;
     const stabilityPoolAddress = (await deployments.get('StabilityPool')).address;
-    const tx = await communityIssuanceContract.setAddresses(lqtyTokenAddress, stabilityPoolAddress);
+    const tx = await communityIssuanceContract.setAddresses(b2bTokenAddress, stabilityPoolAddress);
     await tx.wait();
   }
 
@@ -140,20 +140,20 @@ const deployFunction: DeployFunction = async function ({
     ).address
   );
   if ((await lockupContractFactoryContract.owner()) === deployer) {
-    const lqtyTokenAddress = (await deployments.get('LQTYToken')).address;
-    const tx = await lockupContractFactoryContract.setLQTYTokenAddress(lqtyTokenAddress);
+    const b2bTokenAddress = (await deployments.get('B2BToken')).address;
+    const tx = await lockupContractFactoryContract.setB2BTokenAddress(b2bTokenAddress);
     await tx.wait();
   }
 
-  const LQTYStakingContract = await ethers.getContractAt('LQTYStaking', (await deployments.get('LQTYStaking')).address);
-  if ((await LQTYStakingContract.owner()) === deployer) {
-    const lqtyTokenAddress = (await deployments.get('LQTYToken')).address;
+  const B2BStakingContract = await ethers.getContractAt('B2BStaking', (await deployments.get('B2BStaking')).address);
+  if ((await B2BStakingContract.owner()) === deployer) {
+    const b2bTokenAddress = (await deployments.get('B2BToken')).address;
     const busdcTokenAddress = (await deployments.get('BUSDCToken')).address;
     const troveManagerAddress = (await deployments.get('TroveManager')).address;
     const borrowerOperationsAddress = (await deployments.get('BorrowerOperations')).address;
     const activePoolAddress = (await deployments.get('ActivePool')).address;
-    const tx = await LQTYStakingContract.setAddresses(
-      lqtyTokenAddress,
+    const tx = await B2BStakingContract.setAddresses(
+      b2bTokenAddress,
       busdcTokenAddress,
       troveManagerAddress,
       borrowerOperationsAddress,

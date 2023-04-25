@@ -2,7 +2,7 @@
 
 pragma solidity 0.6.11;
 
-import "../Interfaces/ILQTYToken.sol";
+import "../Interfaces/IB2BToken.sol";
 import "../Interfaces/ICommunityIssuance.sol";
 import "../Dependencies/BaseMath.sol";
 import "../Dependencies/LiquityMath.sol";
@@ -25,37 +25,37 @@ contract CommunityIssuance is ICommunityIssuance, Ownable, CheckContract, BaseMa
     * Minutes in one year: 60*24*365 = 525600
     *
     * For 50% of remaining tokens issued each year, with minutes as time units, we have:
-    * 
+    *
     * F ** 525600 = 0.5
-    * 
+    *
     * Re-arranging:
-    * 
+    *
     * 525600 * ln(F) = ln(0.5)
     * F = 0.5 ** (1/525600)
-    * F = 0.999998681227695000 
+    * F = 0.999998681227695000
     */
     uint constant public ISSUANCE_FACTOR = 999998681227695000;
 
-    /* 
-    * The community LQTY supply cap is the starting balance of the Community Issuance contract.
-    * It should be minted to this contract by LQTYToken, when the token is deployed.
-    * 
-    * Set to 32M (slightly less than 1/3) of total LQTY supply.
+    /*
+    * The community B2B supply cap is the starting balance of the Community Issuance contract.
+    * It should be minted to this contract by B2BToken, when the token is deployed.
+    *
+    * Set to 32M (slightly less than 1/3) of total B2B supply.
     */
-    uint constant public LQTYSupplyCap = 32e24; // 32 million
+    uint constant public B2BSupplyCap = 32e24; // 32 million
 
-    ILQTYToken public lqtyToken;
+    IB2BToken public b2bToken;
 
     address public stabilityPoolAddress;
 
-    uint public totalLQTYIssued;
+    uint public totalB2BIssued;
     uint public immutable deploymentTime;
 
     // --- Events ---
 
-    event LQTYTokenAddressSet(address _lqtyTokenAddress);
+    event B2BTokenAddressSet(address _b2bTokenAddress);
     event StabilityPoolAddressSet(address _stabilityPoolAddress);
-    event TotalLQTYIssuedUpdated(uint _totalLQTYIssued);
+    event TotalB2BIssuedUpdated(uint _totalB2BIssued);
 
     // --- Functions ---
 
@@ -65,45 +65,45 @@ contract CommunityIssuance is ICommunityIssuance, Ownable, CheckContract, BaseMa
 
     function setAddresses
     (
-        address _lqtyTokenAddress, 
+        address _b2bTokenAddress,
         address _stabilityPoolAddress
-    ) 
-        external 
-        onlyOwner 
-        override 
+    )
+        external
+        onlyOwner
+        override
     {
-        checkContract(_lqtyTokenAddress);
+        checkContract(_b2bTokenAddress);
         checkContract(_stabilityPoolAddress);
 
-        lqtyToken = ILQTYToken(_lqtyTokenAddress);
+        b2bToken = IB2BToken(_b2bTokenAddress);
         stabilityPoolAddress = _stabilityPoolAddress;
 
-        // When LQTYToken deployed, it should have transferred CommunityIssuance's LQTY entitlement
-        uint LQTYBalance = lqtyToken.balanceOf(address(this));
-        assert(LQTYBalance >= LQTYSupplyCap);
+        // When B2BToken deployed, it should have transferred CommunityIssuance's B2B entitlement
+        uint B2BBalance = b2bToken.balanceOf(address(this));
+        assert(B2BBalance >= B2BSupplyCap);
 
-        emit LQTYTokenAddressSet(_lqtyTokenAddress);
+        emit B2BTokenAddressSet(_b2bTokenAddress);
         emit StabilityPoolAddressSet(_stabilityPoolAddress);
 
         _renounceOwnership();
     }
 
-    function issueLQTY() external override returns (uint) {
+    function issueB2B() external override returns (uint) {
         _requireCallerIsStabilityPool();
 
-        uint latestTotalLQTYIssued = LQTYSupplyCap.mul(_getCumulativeIssuanceFraction()).div(DECIMAL_PRECISION);
-        uint issuance = latestTotalLQTYIssued.sub(totalLQTYIssued);
+        uint latestTotalB2BIssued = B2BSupplyCap.mul(_getCumulativeIssuanceFraction()).div(DECIMAL_PRECISION);
+        uint issuance = latestTotalB2BIssued.sub(totalB2BIssued);
 
-        totalLQTYIssued = latestTotalLQTYIssued;
-        emit TotalLQTYIssuedUpdated(latestTotalLQTYIssued);
-        
+        totalB2BIssued = latestTotalB2BIssued;
+        emit TotalB2BIssuedUpdated(latestTotalB2BIssued);
+
         return issuance;
     }
 
     /* Gets 1-f^t    where: f < 1
 
     f: issuance factor that determines the shape of the curve
-    t:  time passed since last LQTY issuance event  */
+    t:  time passed since last B2B issuance event  */
     function _getCumulativeIssuanceFraction() internal view returns (uint) {
         // Get the time passed since deployment
         uint timePassedInMinutes = block.timestamp.sub(deploymentTime).div(SECONDS_IN_ONE_MINUTE);
@@ -118,10 +118,10 @@ contract CommunityIssuance is ICommunityIssuance, Ownable, CheckContract, BaseMa
         return cumulativeIssuanceFraction;
     }
 
-    function sendLQTY(address _account, uint _LQTYamount) external override {
+    function sendB2B(address _account, uint _B2Bamount) external override {
         _requireCallerIsStabilityPool();
 
-        lqtyToken.transfer(_account, _LQTYamount);
+        b2bToken.transfer(_account, _B2Bamount);
     }
 
     // --- 'require' functions ---

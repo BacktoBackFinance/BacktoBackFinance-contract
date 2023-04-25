@@ -5,8 +5,8 @@ pragma solidity 0.6.11;
 import "./ILiquityBase.sol";
 import "./IStabilityPool.sol";
 import "./IBUSDCToken.sol";
-import "./ILQTYToken.sol";
-import "./ILQTYStaking.sol";
+import "./IB2BToken.sol";
+import "./IB2BStaking.sol";
 
 
 // Common interface for the Trove Manager.
@@ -23,8 +23,8 @@ interface ITroveManager is ILiquityBase {
     event GasPoolAddressChanged(address _gasPoolAddress);
     event CollSurplusPoolAddressChanged(address _collSurplusPoolAddress);
     event SortedTrovesAddressChanged(address _sortedTrovesAddress);
-    event LQTYTokenAddressChanged(address _lqtyTokenAddress);
-    event LQTYStakingAddressChanged(address _lqtyStakingAddress);
+    event B2BTokenAddressChanged(address _b2bTokenAddress);
+    event B2BStakingAddressChanged(address _b2bStakingAddress);
 
     event Liquidation(uint _liquidatedDebt, uint _liquidatedColl, uint _collGasCompensation, uint _BUSDCGasCompensation);
     event Redemption(uint _attemptedBUSDCAmount, uint _actualBUSDCAmount, uint _ETHSent, uint _ETHFee);
@@ -50,14 +50,14 @@ interface ITroveManager is ILiquityBase {
         address _priceFeedAddress,
         address _busdcTokenAddress,
         address _sortedTrovesAddress,
-        address _lqtyTokenAddress,
-        address _lqtyStakingAddress
+        address _b2bTokenAddress,
+        address _b2bStakingAddress
     ) external;
 
     function stabilityPool() external view returns (IStabilityPool);
     function busdcToken() external view returns (IBUSDCToken);
-    function lqtyToken() external view returns (ILQTYToken);
-    function lqtyStaking() external view returns (ILQTYStaking);
+    function b2bToken() external view returns (IB2BToken);
+    function b2bStaking() external view returns (IB2BStaking);
 
     function getTroveOwnersCount() external view returns (uint);
 

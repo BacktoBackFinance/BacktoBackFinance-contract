@@ -2,10 +2,10 @@
 
 pragma solidity 0.6.11;
 
-import "../LQTY/LQTYStaking.sol";
+import "../LQTY/B2BStaking.sol";
 
 
-contract LQTYStakingTester is LQTYStaking {
+contract B2BStakingTester is B2BStaking {
     function requireCallerIsTroveManager() external view {
         _requireCallerIsTroveManager();
     }

@@ -9,13 +9,13 @@ import "../Interfaces/IBorrowerOperations.sol";
 import "../Interfaces/ITroveManager.sol";
 import "../Interfaces/IStabilityPool.sol";
 import "../Interfaces/IPriceFeed.sol";
-import "../Interfaces/ILQTYStaking.sol";
+import "../Interfaces/IB2BStaking.sol";
 import "./BorrowerOperationsScript.sol";
 import "./ETHTransferScript.sol";
-import "./LQTYStakingScript.sol";
+import "./B2BStakingScript.sol";
 import "../Dependencies/console.sol";
 
-contract BorrowerWrappersScript is BorrowerOperationsScript, ETHTransferScript, LQTYStakingScript {
+contract BorrowerWrappersScript is BorrowerOperationsScript, ETHTransferScript, B2BStakingScript {
     using SafeMath for uint;
 
     string public constant NAME = "BorrowerWrappersScript";
@@ -24,19 +24,19 @@ contract BorrowerWrappersScript is BorrowerOperationsScript, ETHTransferScript, 
     IStabilityPool immutable stabilityPool;
     IPriceFeed immutable priceFeed;
     IERC20 immutable busdcToken;
-    IERC20 immutable lqtyToken;
-    ILQTYStaking immutable lqtyStaking;
+    IERC20 immutable b2bToken;
+    IB2BStaking immutable b2bStaking;
     address immutable backedToken;
 
     constructor(
         address _borrowerOperationsAddress,
         address _troveManagerAddress,
-        address _lqtyStakingAddress,
+        address _b2bStakingAddress,
         address _backedToken
     )
         public
         BorrowerOperationsScript(IBorrowerOperations(_borrowerOperationsAddress))
-        LQTYStakingScript(_lqtyStakingAddress)
+        B2BStakingScript(_b2bStakingAddress)
     {
         checkContract(_troveManagerAddress);
         ITroveManager troveManagerCached = ITroveManager(_troveManagerAddress);
@@ -54,13 +54,13 @@ contract BorrowerWrappersScript is BorrowerOperationsScript, ETHTransferScript, 
         checkContract(busdcTokenCached);
         busdcToken = IERC20(busdcTokenCached);
 
-        address lqtyTokenCached = address(troveManagerCached.lqtyToken());
-        checkContract(lqtyTokenCached);
-        lqtyToken = IERC20(lqtyTokenCached);
+        address b2bTokenCached = address(troveManagerCached.b2bToken());
+        checkContract(b2bTokenCached);
+        b2bToken = IERC20(b2bTokenCached);
 
-        ILQTYStaking lqtyStakingCached = troveManagerCached.lqtyStaking();
-        require(_lqtyStakingAddress == address(lqtyStakingCached), "BorrowerWrappersScript: Wrong LQTYStaking address");
-        lqtyStaking = lqtyStakingCached;
+        IB2BStaking b2bStakingCached = troveManagerCached.b2bStaking();
+        require(_b2bStakingAddress == address(b2bStakingCached), "BorrowerWrappersScript: Wrong B2BStaking address");
+        b2bStaking = b2bStakingCached;
 
         checkContract(_backedToken);
         backedToken = _backedToken;
@@ -92,13 +92,13 @@ contract BorrowerWrappersScript is BorrowerOperationsScript, ETHTransferScript, 
 
     function claimSPRewardsAndRecycle(uint _maxFee, address _upperHint, address _lowerHint) external {
         uint collBalanceBefore = address(this).balance;
-        uint lqtyBalanceBefore = lqtyToken.balanceOf(address(this));
+        uint b2bBalanceBefore = b2bToken.balanceOf(address(this));
 
         // Claim rewards
         stabilityPool.withdrawFromSP(0);
 
         uint collBalanceAfter = address(this).balance;
-        uint lqtyBalanceAfter = lqtyToken.balanceOf(address(this));
+        uint b2bBalanceAfter = b2bToken.balanceOf(address(this));
         uint claimedCollateral = collBalanceAfter.sub(collBalanceBefore);
 
         // Add claimed ETH to trove, get more BUSDC and stake it into the Stability Pool
@@ -112,20 +112,20 @@ contract BorrowerWrappersScript is BorrowerOperationsScript, ETHTransferScript, 
             }
         }
 
-        // Stake claimed LQTY
-        uint claimedLQTY = lqtyBalanceAfter.sub(lqtyBalanceBefore);
-        if (claimedLQTY > 0) {
-            lqtyStaking.stake(claimedLQTY);
+        // Stake claimed B2B
+        uint claimedB2B = b2bBalanceAfter.sub(b2bBalanceBefore);
+        if (claimedB2B > 0) {
+            b2bStaking.stake(claimedB2B);
         }
     }
 
     function claimStakingGainsAndRecycle(uint _maxFee, address _upperHint, address _lowerHint) external {
         uint collBalanceBefore = address(this).balance;
         uint busdcBalanceBefore = busdcToken.balanceOf(address(this));
-        uint lqtyBalanceBefore = lqtyToken.balanceOf(address(this));
+        uint b2bBalanceBefore = b2bToken.balanceOf(address(this));
 
         // Claim gains
-        lqtyStaking.unstake(0);
+        b2bStaking.unstake(0);
 
         uint gainedCollateral = address(this).balance.sub(collBalanceBefore); // stack too deep issues :'(
         uint gainedBUSDC = busdcToken.balanceOf(address(this)).sub(busdcBalanceBefore);
@@ -142,11 +142,11 @@ contract BorrowerWrappersScript is BorrowerOperationsScript, ETHTransferScript, 
         if (totalBUSDC > 0) {
             stabilityPool.provideToSP(totalBUSDC, address(0));
 
-            // Providing to Stability Pool also triggers LQTY claim, so stake it if any
-            uint lqtyBalanceAfter = lqtyToken.balanceOf(address(this));
-            uint claimedLQTY = lqtyBalanceAfter.sub(lqtyBalanceBefore);
-            if (claimedLQTY > 0) {
-                lqtyStaking.stake(claimedLQTY);
+            // Providing to Stability Pool also triggers B2B claim, so stake it if any
+            uint b2bBalanceAfter = b2bToken.balanceOf(address(this));
+            uint claimedB2B = b2bBalanceAfter.sub(b2bBalanceBefore);
+            if (claimedB2B > 0) {
+                b2bStaking.stake(claimedB2B);
             }
         }
     }

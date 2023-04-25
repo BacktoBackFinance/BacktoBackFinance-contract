@@ -4,25 +4,25 @@ pragma solidity 0.6.11;
 
 import "../Dependencies/CheckContract.sol";
 import "../Dependencies/SafeMath.sol";
-import "../Interfaces/ILQTYToken.sol";
+import "../Interfaces/IB2BToken.sol";
 import "../Interfaces/ILockupContractFactory.sol";
 import "../Dependencies/console.sol";
 
 /*
 * Based upon OpenZeppelin's ERC20 contract:
 * https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/ERC20.sol
-*  
+*
 * and their EIP2612 (ERC20Permit / ERC712) functionality:
 * https://github.com/OpenZeppelin/openzeppelin-contracts/blob/53516bc555a454862470e7860a9b5254db4d00f5/contracts/token/ERC20/ERC20Permit.sol
-* 
 *
-*  --- Functionality added specific to the LQTYToken ---
-* 
-* 1) Transfer protection: blacklist of addresses that are invalid recipients (i.e. core Liquity contracts) in external 
-* transfer() and transferFrom() calls. The purpose is to protect users from losing tokens by mistakenly sending LQTY directly to a Liquity
+*
+*  --- Functionality added specific to the B2BToken ---
+*
+* 1) Transfer protection: blacklist of addresses that are invalid recipients (i.e. core Liquity contracts) in external
+* transfer() and transferFrom() calls. The purpose is to protect users from losing tokens by mistakenly sending B2B directly to a Liquity
 * core contract, when they should rather call the right function.
 *
-* 2) sendToLQTYStaking(): callable only by Liquity core contracts, which move LQTY tokens from user -> LQTYStaking contract.
+* 2) sendToB2BStaking(): callable only by Liquity core contracts, which move B2B tokens from user -> B2BStaking contract.
 *
 * 3) Supply hard-capped at 100 million
 *
@@ -37,23 +37,23 @@ import "../Dependencies/console.sol";
 * 8) (64 + 2/3) million tokens are minted at deployment to the Liquity multisig
 *
 * 9) Until one year from deployment:
-* -Liquity multisig may only transfer() tokens to LockupContracts that have been deployed via & registered in the 
-*  LockupContractFactory 
+* -Liquity multisig may only transfer() tokens to LockupContracts that have been deployed via & registered in the
+*  LockupContractFactory
 * -approve(), increaseAllowance(), decreaseAllowance() revert when called by the multisig
 * -transferFrom() reverts when the multisig is the sender
-* -sendToLQTYStaking() reverts when the multisig is the sender, blocking the multisig from staking its LQTY.
-* 
-* After one year has passed since deployment of the LQTYToken, the restrictions on multisig operations are lifted
+* -sendToB2BStaking() reverts when the multisig is the sender, blocking the multisig from staking its B2B.
+*
+* After one year has passed since deployment of the B2BToken, the restrictions on multisig operations are lifted
 * and the multisig has the same rights as any other address.
 */
 
-contract LQTYToken is CheckContract, ILQTYToken {
+contract B2BToken is CheckContract, IB2BToken {
     using SafeMath for uint256;
 
     // --- ERC20 Data ---
 
-    string constant internal _NAME = "LQTY";
-    string constant internal _SYMBOL = "LQTY";
+    string internal constant _NAME = "Back to Back Token";
+    string internal constant _SYMBOL = "B2B";
     string constant internal _VERSION = "1";
     uint8 constant internal  _DECIMALS = 18;
 
@@ -75,10 +75,10 @@ contract LQTYToken is CheckContract, ILQTYToken {
 
     bytes32 private immutable _HASHED_NAME;
     bytes32 private immutable _HASHED_VERSION;
-    
+
     mapping (address => uint256) private _nonces;
 
-    // --- LQTYToken specific data ---
+    // --- B2BToken specific data ---
 
     uint public constant ONE_YEAR_IN_SECONDS = 31536000;  // 60 * 60 * 24 * 365
 
@@ -89,7 +89,7 @@ contract LQTYToken is CheckContract, ILQTYToken {
     address public immutable multisigAddress;
 
     address public immutable communityIssuanceAddress;
-    address public immutable lqtyStakingAddress;
+    address public immutable b2bStakingAddress;
 
     uint internal immutable lpRewardsEntitlement;
 
@@ -98,31 +98,31 @@ contract LQTYToken is CheckContract, ILQTYToken {
     // --- Events ---
 
     event CommunityIssuanceAddressSet(address _communityIssuanceAddress);
-    event LQTYStakingAddressSet(address _lqtyStakingAddress);
+    event B2BStakingAddressSet(address _b2bStakingAddress);
     event LockupContractFactoryAddressSet(address _lockupContractFactoryAddress);
 
     // --- Functions ---
 
     constructor
     (
-        address _communityIssuanceAddress, 
-        address _lqtyStakingAddress,
+        address _communityIssuanceAddress,
+        address _b2bStakingAddress,
         address _lockupFactoryAddress,
         address _bountyAddress,
         address _lpRewardsAddress,
         address _multisigAddress
-    ) 
-        public 
+    )
+        public
     {
         checkContract(_communityIssuanceAddress);
-        checkContract(_lqtyStakingAddress);
+        checkContract(_b2bStakingAddress);
         checkContract(_lockupFactoryAddress);
 
         multisigAddress = _multisigAddress;
         deploymentStartTime  = block.timestamp;
-        
+
         communityIssuanceAddress = _communityIssuanceAddress;
-        lqtyStakingAddress = _lqtyStakingAddress;
+        b2bStakingAddress = _b2bStakingAddress;
         lockupContractFactory = ILockupContractFactory(_lockupFactoryAddress);
 
         bytes32 hashedName = keccak256(bytes(_NAME));
@@ -132,9 +132,9 @@ contract LQTYToken is CheckContract, ILQTYToken {
         _HASHED_VERSION = hashedVersion;
         _CACHED_CHAIN_ID = _chainID();
         _CACHED_DOMAIN_SEPARATOR = _buildDomainSeparator(_TYPE_HASH, hashedName, hashedVersion);
-        
-        // --- Initial LQTY allocations ---
-     
+
+        // --- Initial B2B allocations ---
+
         uint bountyEntitlement = _1_MILLION.mul(2); // Allocate 2 million for bounties/hackathons
         _mint(_bountyAddress, bountyEntitlement);
 
@@ -144,8 +144,8 @@ contract LQTYToken is CheckContract, ILQTYToken {
         uint _lpRewardsEntitlement = _1_MILLION.mul(4).div(3);  // Allocate 1.33 million for LP rewards
         lpRewardsEntitlement = _lpRewardsEntitlement;
         _mint(_lpRewardsAddress, _lpRewardsEntitlement);
-        
-        // Allocate the remainder to the LQTY Multisig: (100 - 2 - 32 - 1.33) million = 64.66 million
+
+        // Allocate the remainder to the B2B Multisig: (100 - 2 - 32 - 1.33) million = 64.66 million
         uint multisigEntitlement = _1_MILLION.mul(100)
             .sub(bountyEntitlement)
             .sub(depositorsAndFrontEndsEntitlement)
@@ -198,7 +198,7 @@ contract LQTYToken is CheckContract, ILQTYToken {
 
     function transferFrom(address sender, address recipient, uint256 amount) external override returns (bool) {
         if (_isFirstYear()) { _requireSenderIsNotMultisig(sender); }
-        
+
         _requireValidRecipient(recipient);
 
         _transfer(sender, recipient, amount);
@@ -208,27 +208,27 @@ contract LQTYToken is CheckContract, ILQTYToken {
 
     function increaseAllowance(address spender, uint256 addedValue) external override returns (bool) {
         if (_isFirstYear()) { _requireCallerIsNotMultisig(); }
-        
+
         _approve(msg.sender, spender, _allowances[msg.sender][spender].add(addedValue));
         return true;
     }
 
     function decreaseAllowance(address spender, uint256 subtractedValue) external override returns (bool) {
         if (_isFirstYear()) { _requireCallerIsNotMultisig(); }
-        
+
         _approve(msg.sender, spender, _allowances[msg.sender][spender].sub(subtractedValue, "ERC20: decreased allowance below zero"));
         return true;
     }
 
-    function sendToLQTYStaking(address _sender, uint256 _amount) external override {
-        _requireCallerIsLQTYStaking();
-        if (_isFirstYear()) { _requireSenderIsNotMultisig(_sender); }  // Prevent the multisig from staking LQTY
-        _transfer(_sender, lqtyStakingAddress, _amount);
+    function sendToB2BStaking(address _sender, uint256 _amount) external override {
+        _requireCallerIsB2BStaking();
+        if (_isFirstYear()) { _requireSenderIsNotMultisig(_sender); }  // Prevent the multisig from staking B2B
+        _transfer(_sender, b2bStakingAddress, _amount);
     }
 
     // --- EIP 2612 functionality ---
 
-    function domainSeparator() public view override returns (bytes32) {    
+    function domainSeparator() public view override returns (bytes32) {
         if (_chainID() == _CACHED_CHAIN_ID) {
             return _CACHED_DOMAIN_SEPARATOR;
         } else {
@@ -238,24 +238,24 @@ contract LQTYToken is CheckContract, ILQTYToken {
 
     function permit
     (
-        address owner, 
-        address spender, 
-        uint amount, 
-        uint deadline, 
-        uint8 v, 
-        bytes32 r, 
+        address owner,
+        address spender,
+        uint amount,
+        uint deadline,
+        uint8 v,
+        bytes32 r,
         bytes32 s
-    ) 
-        external 
-        override 
-    {            
-        require(deadline >= now, 'LQTY: expired deadline');
-        bytes32 digest = keccak256(abi.encodePacked('\x19\x01', 
+    )
+        external
+        override
+    {
+        require(deadline >= now, 'B2B: expired deadline');
+        bytes32 digest = keccak256(abi.encodePacked('\x19\x01',
                          domainSeparator(), keccak256(abi.encode(
-                         _PERMIT_TYPEHASH, owner, spender, amount, 
+                         _PERMIT_TYPEHASH, owner, spender, amount,
                          _nonces[owner]++, deadline))));
         address recoveredAddress = ecrecover(digest, v, r, s);
-        require(recoveredAddress == owner, 'LQTY: invalid signature');
+        require(recoveredAddress == owner, 'B2B: invalid signature');
         _approve(owner, spender, amount);
     }
 
@@ -299,7 +299,7 @@ contract LQTYToken is CheckContract, ILQTYToken {
         _allowances[owner][spender] = amount;
         emit Approval(owner, spender, amount);
     }
-    
+
     // --- Helper functions ---
 
     function _callerIsMultisig() internal view returns (bool) {
@@ -311,35 +311,35 @@ contract LQTYToken is CheckContract, ILQTYToken {
     }
 
     // --- 'require' functions ---
-    
+
     function _requireValidRecipient(address _recipient) internal view {
         require(
-            _recipient != address(0) && 
+            _recipient != address(0) &&
             _recipient != address(this),
-            "LQTY: Cannot transfer tokens directly to the LQTY token contract or the zero address"
+            "B2B: Cannot transfer tokens directly to the B2B token contract or the zero address"
         );
         require(
             _recipient != communityIssuanceAddress &&
-            _recipient != lqtyStakingAddress,
-            "LQTY: Cannot transfer tokens directly to the community issuance or staking contract"
+            _recipient != b2bStakingAddress,
+            "B2B: Cannot transfer tokens directly to the community issuance or staking contract"
         );
     }
 
     function _requireRecipientIsRegisteredLC(address _recipient) internal view {
-        require(lockupContractFactory.isRegisteredLockup(_recipient), 
-        "LQTYToken: recipient must be a LockupContract registered in the Factory");
+        require(lockupContractFactory.isRegisteredLockup(_recipient),
+        "B2BToken: recipient must be a LockupContract registered in the Factory");
     }
 
     function _requireSenderIsNotMultisig(address _sender) internal view {
-        require(_sender != multisigAddress, "LQTYToken: sender must not be the multisig");
+        require(_sender != multisigAddress, "B2BToken: sender must not be the multisig");
     }
 
     function _requireCallerIsNotMultisig() internal view {
-        require(!_callerIsMultisig(), "LQTYToken: caller must not be the multisig");
+        require(!_callerIsMultisig(), "B2BToken: caller must not be the multisig");
     }
 
-    function _requireCallerIsLQTYStaking() internal view {
-         require(msg.sender == lqtyStakingAddress, "LQTYToken: caller must be the LQTYStaking contract");
+    function _requireCallerIsB2BStaking() internal view {
+         require(msg.sender == b2bStakingAddress, "B2BToken: caller must be the B2BStaking contract");
     }
 
     // --- Optional functions ---

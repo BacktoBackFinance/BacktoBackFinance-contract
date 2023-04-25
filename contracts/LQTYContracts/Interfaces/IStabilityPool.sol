@@ -21,17 +21,17 @@ pragma solidity 0.6.11;
  * Please see the implementation spec in the proof document, which closely follows on from the compounded deposit / ETH gain derivations:
  * https://github.com/liquity/liquity/blob/master/papers/Scalable_Reward_Distribution_with_Compounding_Stakes.pdf
  *
- * --- LQTY ISSUANCE TO STABILITY POOL DEPOSITORS ---
+ * --- B2B ISSUANCE TO STABILITY POOL DEPOSITORS ---
  *
- * An LQTY issuance event occurs at every deposit operation, and every liquidation.
+ * An B2B issuance event occurs at every deposit operation, and every liquidation.
  *
  * Each deposit is tagged with the address of the front end through which it was made.
  *
- * All deposits earn a share of the issued LQTY in proportion to the deposit as a share of total deposits. The LQTY earned
+ * All deposits earn a share of the issued B2B in proportion to the deposit as a share of total deposits. The B2B earned
  * by a given deposit, is split between the depositor and the front end through which the deposit was made, based on the front end's kickbackRate.
  *
  * Please see the system Readme for an overview:
- * https://github.com/liquity/dev/blob/main/README.md#lqty-issuance-to-stability-providers
+ * https://github.com/liquity/dev/blob/main/README.md#b2b-issuance-to-stability-providers
  */
 interface IStabilityPool {
     // --- Events ---
@@ -63,8 +63,8 @@ interface IStabilityPool {
     event FrontEndStakeChanged(address indexed _frontEnd, uint _newFrontEndStake, address _depositor);
 
     event ETHGainWithdrawn(address indexed _depositor, uint _ETH, uint _BUSDCLoss);
-    event LQTYPaidToDepositor(address indexed _depositor, uint _LQTY);
-    event LQTYPaidToFrontEnd(address indexed _frontEnd, uint _LQTY);
+    event B2BPaidToDepositor(address indexed _depositor, uint _B2B);
+    event B2BPaidToFrontEnd(address indexed _frontEnd, uint _B2B);
     event EtherSent(address _to, uint _amount);
 
     // --- Functions ---
@@ -90,10 +90,10 @@ interface IStabilityPool {
      * - Sender is not a registered frontend
      * - _amount is not zero
      * ---
-     * - Triggers a LQTY issuance, based on time passed since the last issuance. The LQTY issuance is shared between *all* depositors and front ends
+     * - Triggers a B2B issuance, based on time passed since the last issuance. The B2B issuance is shared between *all* depositors and front ends
      * - Tags the deposit with the provided front end tag param, if it's a new deposit
-     * - Sends depositor's accumulated gains (LQTY, ETH) to depositor
-     * - Sends the tagged front end's accumulated LQTY gains to the tagged front end
+     * - Sends depositor's accumulated gains (B2B, ETH) to depositor
+     * - Sends the tagged front end's accumulated B2B gains to the tagged front end
      * - Increases deposit and tagged front end's stake, and takes new snapshots for each.
      */
     function provideToSP(uint _amount, address _frontEndTag) external;
@@ -103,10 +103,10 @@ interface IStabilityPool {
      * - _amount is zero or there are no under collateralized troves left in the system
      * - User has a non zero deposit
      * ---
-     * - Triggers a LQTY issuance, based on time passed since the last issuance. The LQTY issuance is shared between *all* depositors and front ends
+     * - Triggers a B2B issuance, based on time passed since the last issuance. The B2B issuance is shared between *all* depositors and front ends
      * - Removes the deposit's front end tag if it is a full withdrawal
-     * - Sends all depositor's accumulated gains (LQTY, ETH) to depositor
-     * - Sends the tagged front end's accumulated LQTY gains to the tagged front end
+     * - Sends all depositor's accumulated gains (B2B, ETH) to depositor
+     * - Sends the tagged front end's accumulated B2B gains to the tagged front end
      * - Decreases deposit and tagged front end's stake, and takes new snapshots for each.
      *
      * If _amount > userDeposit, the user withdraws all of their compounded deposit.
@@ -119,9 +119,9 @@ interface IStabilityPool {
      * - User has an open trove
      * - User has some ETH gain
      * ---
-     * - Triggers a LQTY issuance, based on time passed since the last issuance. The LQTY issuance is shared between *all* depositors and front ends
-     * - Sends all depositor's LQTY gain to  depositor
-     * - Sends all tagged front end's LQTY gain to the tagged front end
+     * - Triggers a B2B issuance, based on time passed since the last issuance. The B2B issuance is shared between *all* depositors and front ends
+     * - Sends all depositor's B2B gain to  depositor
+     * - Sends all tagged front end's B2B gain to the tagged front end
      * - Transfers the depositor's entire ETH gain from the Stability Pool to the caller's trove
      * - Leaves their compounded deposit in the Stability Pool
      * - Updates snapshots for deposit and tagged front end stake
@@ -165,17 +165,17 @@ interface IStabilityPool {
     function getDepositorETHGain(address _depositor) external view returns (uint);
 
     /*
-     * Calculate the LQTY gain earned by a deposit since its last snapshots were taken.
+     * Calculate the B2B gain earned by a deposit since its last snapshots were taken.
      * If not tagged with a front end, the depositor gets a 100% cut of what their deposit earned.
      * Otherwise, their cut of the deposit's earnings is equal to the kickbackRate, set by the front end through
      * which they made their deposit.
      */
-    function getDepositorLQTYGain(address _depositor) external view returns (uint);
+    function getDepositorB2BGain(address _depositor) external view returns (uint);
 
     /*
-     * Return the LQTY gain earned by the front end.
+     * Return the B2B gain earned by the front end.
      */
-    function getFrontEndLQTYGain(address _frontEnd) external view returns (uint);
+    function getFrontEndB2BGain(address _frontEnd) external view returns (uint);
 
     /*
      * Return the user's compounded deposit.
