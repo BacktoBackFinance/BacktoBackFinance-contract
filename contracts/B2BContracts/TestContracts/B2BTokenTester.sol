@@ -2,7 +2,7 @@
 
 pragma solidity 0.6.11;
 
-import "../LQTY/B2BToken.sol";
+import "../B2B/B2BToken.sol";
 
 contract B2BTokenTester is B2BToken {
     constructor

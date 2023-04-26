@@ -2,7 +2,7 @@
 
 pragma solidity 0.6.11;
 
-import "../LQTY/CommunityIssuance.sol";
+import "../B2B/CommunityIssuance.sol";
 
 contract CommunityIssuanceTester is CommunityIssuance {
     function obtainB2B(uint _amount) external {
