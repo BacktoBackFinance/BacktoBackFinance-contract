@@ -20,7 +20,7 @@ interface StableToken is IERC20 {
     function burn(address from, uint256 amount) external;
 }
 
-contract BSD {
+contract BackedPool {
     using SafeERC20 for IERC20;
 
     StableToken public stableToken;
