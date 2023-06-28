@@ -17,6 +17,7 @@ import "./Dependencies/Ownable.sol";
 import "./Dependencies/CheckContract.sol";
 import "./Dependencies/console.sol";
 import "./Dependencies/IERC20.sol";
+import "./Dependencies/IStableMintController.sol";
 
 /*
  * The Stability Pool holds BUSDC tokens deposited by Stability Pool depositors.
@@ -165,6 +166,8 @@ contract StabilityPool is LiquityBase, Ownable, CheckContract, IStabilityPool {
 
     address public backedTokenAddress;
 
+    IStableMintController public stableMintController;
+
     uint256 internal ETH; // deposited ether tracker
 
     // Tracker for BUSDC held in the pool. Changes when users deposit/withdraw, and when Trove debt is offset.
@@ -281,7 +284,8 @@ contract StabilityPool is LiquityBase, Ownable, CheckContract, IStabilityPool {
         address _sortedTrovesAddress,
         address _priceFeedAddress,
         address _communityIssuanceAddress,
-        address _backedTokenAddress
+        address _backedTokenAddress,
+        address _stableMintControllerAddress
     ) external override onlyOwner {
         checkContract(_borrowerOperationsAddress);
         checkContract(_troveManagerAddress);
@@ -291,6 +295,7 @@ contract StabilityPool is LiquityBase, Ownable, CheckContract, IStabilityPool {
         checkContract(_priceFeedAddress);
         checkContract(_communityIssuanceAddress);
         checkContract(_backedTokenAddress);
+        checkContract(_stableMintControllerAddress);
 
         borrowerOperations = IBorrowerOperations(_borrowerOperationsAddress);
         troveManager = ITroveManager(_troveManagerAddress);
@@ -300,6 +305,7 @@ contract StabilityPool is LiquityBase, Ownable, CheckContract, IStabilityPool {
         priceFeed = IPriceFeed(_priceFeedAddress);
         communityIssuance = ICommunityIssuance(_communityIssuanceAddress);
         backedTokenAddress = _backedTokenAddress;
+        stableMintController = IStableMintController(_stableMintControllerAddress);
 
         emit BorrowerOperationsAddressChanged(_borrowerOperationsAddress);
         emit TroveManagerAddressChanged(_troveManagerAddress);
@@ -640,6 +646,7 @@ contract StabilityPool is LiquityBase, Ownable, CheckContract, IStabilityPool {
         _decreaseBUSDC(_debtToOffset);
 
         // Burn the debt that was successfully offset
+        stableMintController.decreaseMint(address(borrowerOperations), _debtToOffset);
         busdcToken.burn(address(this), _debtToOffset);
 
         activePoolCached.sendETH(address(this), _collToAdd);

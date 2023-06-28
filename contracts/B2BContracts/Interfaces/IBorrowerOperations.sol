@@ -34,7 +34,8 @@ interface IBorrowerOperations {
         address _sortedTrovesAddress,
         address _busdcTokenAddress,
         address _b2bStakingAddress,
-        address _backedTokenAddress
+        address _backedTokenAddress,
+        address _stableMintControllerAddress
     ) external;
 
     function openTrove(

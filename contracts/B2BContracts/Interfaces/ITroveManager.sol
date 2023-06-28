@@ -51,7 +51,8 @@ interface ITroveManager is ILiquityBase {
         address _busdcTokenAddress,
         address _sortedTrovesAddress,
         address _b2bTokenAddress,
-        address _b2bStakingAddress
+        address _b2bStakingAddress,
+        address _stableMintControllerAddress
     ) external;
 
     function stabilityPool() external view returns (IStabilityPool);
