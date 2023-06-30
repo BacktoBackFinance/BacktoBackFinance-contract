@@ -81,7 +81,8 @@ interface IStabilityPool {
         address _sortedTrovesAddress,
         address _priceFeedAddress,
         address _communityIssuanceAddress,
-        address _backedTokenAddress
+        address _backedTokenAddress,
+        address _stableMintControllerAddress
     ) external;
 
     /*

@@ -14,6 +14,7 @@ import "./PriceFeedTestnet.sol";
 import "../SortedTroves.sol";
 import "./EchidnaProxy.sol";
 import "../Dependencies/IERC20.sol";
+import "../StableMintController.sol";
 
 //import "../Dependencies/console.sol";
 
@@ -41,6 +42,7 @@ contract EchidnaTester {
     PriceFeedTestnet priceFeedTestnet;
     SortedTroves sortedTroves;
     IERC20 public backedToken;
+    StableMintController public stableMintController;
 
     EchidnaProxy[NUMBER_OF_ACTORS] public echidnaProxies;
 
@@ -60,6 +62,8 @@ contract EchidnaTester {
 
         sortedTroves = new SortedTroves();
 
+        stableMintController = new StableMintController();
+
         troveManager.setAddresses(
             address(borrowerOperations),
             address(activePool),
@@ -71,7 +75,8 @@ contract EchidnaTester {
             address(busdcToken),
             address(sortedTroves),
             address(0),
-            address(0)
+            address(0),
+            address(stableMintController)
         );
 
         borrowerOperations.setAddresses(
@@ -85,7 +90,8 @@ contract EchidnaTester {
             address(sortedTroves),
             address(busdcToken),
             address(0),
-            address(backedToken)
+            address(backedToken),
+            address(stableMintController)
         );
 
         activePool.setAddresses(
@@ -106,7 +112,8 @@ contract EchidnaTester {
             address(sortedTroves),
             address(priceFeedTestnet),
             address(0),
-            address(backedToken)
+            address(backedToken),
+            address(stableMintController)
         );
 
         collSurplusPool.setAddresses(

@@ -13,6 +13,7 @@ import "./Dependencies/LiquityBase.sol";
 import "./Dependencies/Ownable.sol";
 import "./Dependencies/CheckContract.sol";
 import "./Dependencies/console.sol";
+import "./Dependencies/IStableMintController.sol";
 
 contract TroveManager is LiquityBase, Ownable, CheckContract, ITroveManager {
     string constant public NAME = "TroveManager";
@@ -35,6 +36,8 @@ contract TroveManager is LiquityBase, Ownable, CheckContract, ITroveManager {
 
     // A doubly linked list of Troves, sorted by their sorted by their collateral ratios
     ISortedTroves public sortedTroves;
+
+    IStableMintController public stableMintController;
 
     // --- Data structures ---
 
@@ -242,7 +245,8 @@ contract TroveManager is LiquityBase, Ownable, CheckContract, ITroveManager {
         address _busdcTokenAddress,
         address _sortedTrovesAddress,
         address _b2bTokenAddress,
-        address _b2bStakingAddress
+        address _b2bStakingAddress,
+        address _stableMintControllerAddress
     )
         external
         override
@@ -259,6 +263,7 @@ contract TroveManager is LiquityBase, Ownable, CheckContract, ITroveManager {
         checkContract(_sortedTrovesAddress);
         checkContract(_b2bTokenAddress);
         checkContract(_b2bStakingAddress);
+        checkContract(_stableMintControllerAddress);
 
         borrowerOperationsAddress = _borrowerOperationsAddress;
         activePool = IActivePool(_activePoolAddress);
@@ -271,6 +276,7 @@ contract TroveManager is LiquityBase, Ownable, CheckContract, ITroveManager {
         sortedTroves = ISortedTroves(_sortedTrovesAddress);
         b2bToken = IB2BToken(_b2bTokenAddress);
         b2bStaking = IB2BStaking(_b2bStakingAddress);
+        stableMintController = IStableMintController(_stableMintControllerAddress);
 
         emit BorrowerOperationsAddressChanged(_borrowerOperationsAddress);
         emit ActivePoolAddressChanged(_activePoolAddress);
@@ -880,6 +886,7 @@ contract TroveManager is LiquityBase, Ownable, CheckContract, ITroveManager {
     * Any surplus ETH left in the trove, is sent to the Coll surplus pool, and can be later claimed by the borrower.
     */
     function _redeemCloseTrove(ContractsCache memory _contractsCache, address _borrower, uint _BUSDC, uint _ETH) internal {
+        stableMintController.decreaseMint(borrowerOperationsAddress, _BUSDC);
         _contractsCache.busdcToken.burn(gasPoolAddress, _BUSDC);
         // Update Active Pool BUSDC, and send ETH to account
         _contractsCache.activePool.decreaseBUSDCDebt(_BUSDC);
@@ -1016,6 +1023,7 @@ contract TroveManager is LiquityBase, Ownable, CheckContract, ITroveManager {
         emit Redemption(_BUSDCamount, totals.totalBUSDCToRedeem, totals.totalETHDrawn, totals.ETHFee);
 
         // Burn the total BUSDC that is cancelled with debt, and send the redeemed ETH to msg.sender
+        stableMintController.decreaseMint(borrowerOperationsAddress, totals.totalBUSDCToRedeem);
         contractsCache.busdcToken.burn(msg.sender, totals.totalBUSDCToRedeem);
         // Update Active Pool BUSDC, and send ETH to account
         contractsCache.activePool.decreaseBUSDCDebt(totals.totalBUSDCToRedeem);

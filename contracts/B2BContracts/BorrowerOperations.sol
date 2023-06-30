@@ -13,6 +13,7 @@ import "./Dependencies/Ownable.sol";
 import "./Dependencies/CheckContract.sol";
 import "./Dependencies/console.sol";
 import "./Dependencies/IERC20.sol";
+import "./Dependencies/IStableMintController.sol";
 
 contract BorrowerOperations is LiquityBase, Ownable, CheckContract, IBorrowerOperations {
     string public constant NAME = "BorrowerOperations";
@@ -36,6 +37,8 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, IBorrowerOpe
     ISortedTroves public sortedTroves;
 
     address public backedTokenAddress;
+
+    IStableMintController public stableMintController;
 
     /* --- Variable container structs  ---
 
@@ -109,7 +112,8 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, IBorrowerOpe
         address _sortedTrovesAddress,
         address _busdcTokenAddress,
         address _b2bStakingAddress,
-        address _backedTokenAddress
+        address _backedTokenAddress,
+        address _stableMintControllerAddress
     ) external override onlyOwner {
         // This makes impossible to open a trove with zero withdrawn BUSDC
         assert(MIN_NET_DEBT > 0);
@@ -125,6 +129,7 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, IBorrowerOpe
         checkContract(_busdcTokenAddress);
         checkContract(_b2bStakingAddress);
         checkContract(_backedTokenAddress);
+        checkContract(_stableMintControllerAddress);
 
         troveManager = ITroveManager(_troveManagerAddress);
         activePool = IActivePool(_activePoolAddress);
@@ -138,6 +143,7 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, IBorrowerOpe
         b2bStakingAddress = _b2bStakingAddress;
         b2bStaking = IB2BStaking(_b2bStakingAddress);
         backedTokenAddress = _backedTokenAddress;
+        stableMintController = IStableMintController(_stableMintControllerAddress);
 
         emit TroveManagerAddressChanged(_troveManagerAddress);
         emit ActivePoolAddressChanged(_activePoolAddress);
@@ -465,6 +471,8 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, IBorrowerOpe
 
         // Send fee to B2B staking contract
         b2bStaking.increaseF_BUSDC(BUSDCFee);
+        require(stableMintController.availableAmount(address(this)) >= BUSDCFee, "Not enough BUSDC available");
+        stableMintController.increaseMint(address(this), BUSDCFee);
         _busdcToken.mint(b2bStakingAddress, BUSDCFee);
 
         return BUSDCFee;
@@ -545,12 +553,15 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, IBorrowerOpe
         uint _netDebtIncrease
     ) internal {
         _activePool.increaseBUSDCDebt(_netDebtIncrease);
+        require(stableMintController.availableAmount(address(this)) >= _BUSDCamount, "Not enough BUSDC available");
+        stableMintController.increaseMint(address(this), _BUSDCamount);
         _busdcToken.mint(_account, _BUSDCamount);
     }
 
     // Burn the specified amount of BUSDC from _account and decreases the total active debt
     function _repayBUSDC(IActivePool _activePool, IBUSDCToken _busdcToken, address _account, uint _BUSDC) internal {
         _activePool.decreaseBUSDCDebt(_BUSDC);
+        stableMintController.decreaseMint(address(this), _BUSDC);
         _busdcToken.burn(_account, _BUSDC);
     }
 
