@@ -3,6 +3,7 @@
 pragma solidity 0.6.11;
 
 import "./Interfaces/IBorrowerOperations.sol";
+import "./Interfaces/ITokenReceiver.sol";
 import "./Interfaces/ITroveManager.sol";
 import "./Interfaces/IBUSDCToken.sol";
 import "./Interfaces/ICollSurplusPool.sol";
@@ -540,8 +541,12 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, IBorrowerOpe
 
     // Send ETH to Active Pool and increase its recorded ETH balance
     function _activePoolAddColl(IActivePool _activePool, uint _amount) internal {
-        (bool success, ) = address(_activePool).call{value: _amount}("");
-        require(success, "BorrowerOps: Sending ETH to ActivePool failed");
+        address _activePoolAddress = address(_activePool);
+        IERC20(backedTokenAddress).approve(_activePoolAddress, _amount);
+        try ITokenReceiver(_activePoolAddress).receiveBackedToken(_amount) {} catch {
+            IERC20(backedTokenAddress).approve(_activePoolAddress, 0);
+            IERC20(backedTokenAddress).transfer(_activePoolAddress, _amount);
+        }
     }
 
     // Issue the specified amount of BUSDC to _account and increases the total active debt (_netDebtIncrease potentially includes a BUSDCFee)

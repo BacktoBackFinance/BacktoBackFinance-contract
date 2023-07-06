@@ -38,6 +38,7 @@ contract B2BStaking is IB2BStaking, Ownable, CheckContract, BaseMath {
     address public troveManagerAddress;
     address public borrowerOperationsAddress;
     address public activePoolAddress;
+    address public backedTokenAddress;
 
     // --- Events ---
 
@@ -63,7 +64,8 @@ contract B2BStaking is IB2BStaking, Ownable, CheckContract, BaseMath {
         address _busdcTokenAddress,
         address _troveManagerAddress,
         address _borrowerOperationsAddress,
-        address _activePoolAddress
+        address _activePoolAddress,
+        address _backedTokenAddress
     )
         external
         onlyOwner
@@ -74,12 +76,14 @@ contract B2BStaking is IB2BStaking, Ownable, CheckContract, BaseMath {
         checkContract(_troveManagerAddress);
         checkContract(_borrowerOperationsAddress);
         checkContract(_activePoolAddress);
+        checkContract(_backedTokenAddress);
 
         b2bToken = IB2BToken(_b2bTokenAddress);
         busdcToken = IBUSDCToken(_busdcTokenAddress);
         troveManagerAddress = _troveManagerAddress;
         borrowerOperationsAddress = _borrowerOperationsAddress;
         activePoolAddress = _activePoolAddress;
+        backedTokenAddress = _backedTokenAddress;
 
         emit B2BTokenAddressSet(_b2bTokenAddress);
         emit B2BTokenAddressSet(_busdcTokenAddress);
@@ -241,7 +245,8 @@ contract B2BStaking is IB2BStaking, Ownable, CheckContract, BaseMath {
         require(_amount > 0, 'B2BStaking: Amount must be non-zero');
     }
 
-    receive() external payable {
+    function receiveBackedToken(uint256 amount) external {
         _requireCallerIsActivePool();
+        IERC20(backedTokenAddress).transferFrom(msg.sender, address(this), amount);
     }
 }

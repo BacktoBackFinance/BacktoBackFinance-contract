@@ -28,7 +28,8 @@ interface IB2BStaking {
         address _busdcTokenAddress,
         address _troveManagerAddress,
         address _borrowerOperationsAddress,
-        address _activePoolAddress
+        address _activePoolAddress,
+        address _backedTokenAddress
     )  external;
 
     function stake(uint _B2Bamount) external;

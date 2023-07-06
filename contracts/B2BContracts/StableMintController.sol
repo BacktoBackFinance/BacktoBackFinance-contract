@@ -3,6 +3,7 @@
 pragma solidity 0.6.11;
 
 import "./Dependencies/IStableMintController.sol";
+import "./Dependencies/LiquityMath.sol";
 import "./Dependencies/Ownable.sol";
 import "./Dependencies/SafeMath.sol";
 
@@ -10,8 +11,9 @@ contract StableMintController is Ownable, IStableMintController {
     using SafeMath for uint256;
 
     uint256 constant public DECIMAL_PRECISION = 1e18;
-    uint256 constant public ETH_RATIO = 8 * DECIMAL_PRECISION;
-    uint256 constant public BACKED_RATIO = 2 * DECIMAL_PRECISION;
+    uint256 constant public ETH_RATIO = 8;
+    uint256 constant public BACKED_RATIO = 2;
+    uint256 constant public ADJUST_RATIO = DECIMAL_PRECISION + DECIMAL_PRECISION / 10; // 110%
 
     address public troveManagerAddress;
     address public stabilityPoolAddress;
@@ -36,7 +38,7 @@ contract StableMintController is Ownable, IStableMintController {
         require(_stabilityPoolAddress != address(0), "stabilityPoolAddress is zero address");
         require(_ethBoAddress != address(0), "_ethBoAddress is zero address");
         require(_backedBoAddress != address(0), "_backedBoAddress is zero address");
-        require(_ethBoAddress != _backedBoAddress, "invalid _ethBoAddress and _backedBoAddress");
+        require(_ethBoAddress != _backedBoAddress, "bo address should be different");
 
         troveManagerAddress = _troveManagerAddress;
         stabilityPoolAddress = _stabilityPoolAddress;
@@ -59,20 +61,31 @@ contract StableMintController is Ownable, IStableMintController {
     }
 
     function availableAmount(address borrowerOperations) public override view returns (uint256) {
+        if (borrowerOperations != ethBoAddress && borrowerOperations != backedBoAddress) {
+            return 0;
+        }
+
+        uint256 amount1 = 0;
+        uint256 amount2 = 0;
         if (borrowerOperations == ethBoAddress) {
             if (initMintCaps[ethBoAddress] > totalSupplys[ethBoAddress]) {
-                return initMintCaps[ethBoAddress] - totalSupplys[ethBoAddress];
-            } else if (totalSupplys[backedBoAddress].mul(ETH_RATIO) > totalSupplys[ethBoAddress].mul(BACKED_RATIO)) {
-                return totalSupplys[backedBoAddress].mul(ETH_RATIO) - totalSupplys[ethBoAddress].mul(BACKED_RATIO);
+                amount1 = initMintCaps[ethBoAddress] - totalSupplys[ethBoAddress];
+            }
+            uint256 _amount2 = totalSupplys[backedBoAddress].mul(ETH_RATIO).div(BACKED_RATIO).mul(ADJUST_RATIO).div(DECIMAL_PRECISION);
+            if (_amount2 > totalSupplys[ethBoAddress]) {
+                amount2 = _amount2 - totalSupplys[ethBoAddress];
             }
         } else {
             if (initMintCaps[backedBoAddress] > totalSupplys[backedBoAddress]) {
-                return initMintCaps[backedBoAddress] - totalSupplys[backedBoAddress];
-            } else if (totalSupplys[ethBoAddress].mul(ETH_RATIO) > totalSupplys[backedBoAddress].mul(BACKED_RATIO)) {
-                return totalSupplys[ethBoAddress].mul(ETH_RATIO) - totalSupplys[backedBoAddress].mul(BACKED_RATIO);
+                amount1 = initMintCaps[backedBoAddress] - totalSupplys[backedBoAddress];
+            }
+            uint256 _amount2 = totalSupplys[ethBoAddress].mul(BACKED_RATIO).div(ETH_RATIO).mul(ADJUST_RATIO).div(DECIMAL_PRECISION);
+            if (_amount2 > totalSupplys[backedBoAddress]) {
+                amount2 = _amount2 - totalSupplys[backedBoAddress];
             }
         }
-        return 0;
+
+        return LiquityMath._max(amount1, amount2);
     }
 
     function _requireCallerIsBOorTroveMorSP() internal view {
