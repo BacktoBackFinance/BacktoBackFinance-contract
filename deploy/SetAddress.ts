@@ -42,6 +42,7 @@ const deployFunction: DeployFunction = async function ({
     const busdcTokenAddress = (await deployments.get('BUSDCToken')).address;
     const b2bStakingAddress = (await deployments.get('B2BStaking')).address;
     const backedTokenAddress = (await deployments.get('BackedToken')).address;
+    const stableMintControllerAddress = (await deployments.get('StableMintController')).address;
     const tx = await borrowerOperationsContract.setAddresses(
       troveManagerAddress,
       activePoolAddress,
@@ -53,7 +54,8 @@ const deployFunction: DeployFunction = async function ({
       sortedTrovesAddress,
       busdcTokenAddress,
       b2bStakingAddress,
-      backedTokenAddress
+      backedTokenAddress,
+      stableMintControllerAddress
     );
     await tx.wait();
   }
@@ -76,6 +78,7 @@ const deployFunction: DeployFunction = async function ({
     const sortedTrovesAddress = (await deployments.get('SortedTroves')).address;
     const b2bTokenAddress = (await deployments.get('B2BToken')).address;
     const b2bStakingAddress = (await deployments.get('B2BStaking')).address;
+    const stableMintControllerAddress = (await deployments.get('StableMintController')).address;
     const tx = await troveManagerContract.setAddresses(
       borrowerOperationsAddress,
       activePoolAddress,
@@ -87,7 +90,8 @@ const deployFunction: DeployFunction = async function ({
       busdcTokenAddress,
       sortedTrovesAddress,
       b2bTokenAddress,
-      b2bStakingAddress
+      b2bStakingAddress,
+      stableMintControllerAddress
     );
     await tx.wait();
   }
@@ -107,6 +111,7 @@ const deployFunction: DeployFunction = async function ({
     const priceFeedAddress = (await deployments.get('BackedOracleProxy')).address;
     const communityIssuanceAddress = (await deployments.get('CommunityIssuance')).address;
     const backedTokenAddress = (await deployments.get('BackedToken')).address;
+    const stableMintControllerAddress = (await deployments.get('StableMintController')).address;
     const tx = await stabilityPoolContract.setAddresses(
       borrowerOperationsAddress,
       troveManagerAddress,
@@ -115,7 +120,8 @@ const deployFunction: DeployFunction = async function ({
       sortedTrovesAddress,
       priceFeedAddress,
       communityIssuanceAddress,
-      backedTokenAddress
+      backedTokenAddress,
+      stableMintControllerAddress
     );
     await tx.wait();
   }
@@ -152,12 +158,32 @@ const deployFunction: DeployFunction = async function ({
     const troveManagerAddress = (await deployments.get('TroveManager')).address;
     const borrowerOperationsAddress = (await deployments.get('BorrowerOperations')).address;
     const activePoolAddress = (await deployments.get('ActivePool')).address;
+    const backedTokenAddress = (await deployments.get('BackedToken')).address;
     const tx = await B2BStakingContract.setAddresses(
       b2bTokenAddress,
       busdcTokenAddress,
       troveManagerAddress,
       borrowerOperationsAddress,
-      activePoolAddress
+      activePoolAddress,
+      backedTokenAddress
+    );
+    await tx.wait();
+  }
+
+  const StableMintControllerContract = await ethers.getContractAt('StableMintController', (await deployments.get('StableMintController')).address);
+  if ((await StableMintControllerContract.owner()) === deployer) {
+    const troveManagerAddress = (await deployments.get('TroveManager')).address;
+    const stabilityPoolAddress = (await deployments.get('StabilityPool')).address;
+    const borrowerOperationsAddress = (await deployments.get('BorrowerOperations')).address;
+    // TODO deploy a different BorrowerOperations contract
+    const borrowerOperationsAddress2 = stabilityPoolAddress;
+    const tx = await StableMintControllerContract.setAddresses(
+      troveManagerAddress,
+      stabilityPoolAddress,
+      borrowerOperationsAddress,
+      borrowerOperationsAddress2,
+      ethers.utils.parseEther('100'),
+      ethers.utils.parseEther('100'),
     );
     await tx.wait();
   }
@@ -165,6 +191,6 @@ const deployFunction: DeployFunction = async function ({
 
 export default deployFunction;
 
-deployFunction.dependencies = ['ActivePool', 'StabilityPool', 'BorrowerOperations', 'TroveManager'];
+deployFunction.dependencies = ['ActivePool', 'StabilityPool', 'BorrowerOperations', 'TroveManager', 'StableMintController'];
 
 deployFunction.tags = ['SetAddress'];
