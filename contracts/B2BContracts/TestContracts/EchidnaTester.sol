@@ -252,11 +252,10 @@ contract EchidnaTester {
         uint _i,
         uint _amount,
         address _upperHint,
-        address _lowerHint,
-        uint _backedAmount
+        address _lowerHint
     ) external {
         uint actor = _i % NUMBER_OF_ACTORS;
-        echidnaProxies[actor].withdrawCollPrx(_amount, _upperHint, _lowerHint, _backedAmount);
+        echidnaProxies[actor].withdrawCollPrx(_amount, _upperHint, _lowerHint);
     }
 
     function withdrawBUSDCExt(
@@ -268,12 +267,12 @@ contract EchidnaTester {
         uint _backedAmount
     ) external {
         uint actor = _i % NUMBER_OF_ACTORS;
-        echidnaProxies[actor].withdrawBUSDCPrx(_amount, _upperHint, _lowerHint, _maxFee, _backedAmount);
+        echidnaProxies[actor].withdrawBUSDCPrx(_amount, _upperHint, _lowerHint, _maxFee);
     }
 
-    function repayBUSDCExt(uint _i, uint _amount, address _upperHint, address _lowerHint, uint _backedAmount) external {
+    function repayBUSDCExt(uint _i, uint _amount, address _upperHint, address _lowerHint) external {
         uint actor = _i % NUMBER_OF_ACTORS;
-        echidnaProxies[actor].repayBUSDCPrx(_amount, _upperHint, _lowerHint, _backedAmount);
+        echidnaProxies[actor].repayBUSDCPrx(_amount, _upperHint, _lowerHint);
     }
 
     function closeTroveExt(uint _i) external {

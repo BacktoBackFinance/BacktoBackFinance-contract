@@ -50,17 +50,16 @@ interface IBorrowerOperations {
 
     function moveETHGainToTrove(address _user, address _upperHint, address _lowerHint, uint _backedAmount) external;
 
-    function withdrawColl(uint _amount, address _upperHint, address _lowerHint, uint _backedAmount) external;
+    function withdrawColl(uint _amount, address _upperHint, address _lowerHint) external;
 
     function withdrawBUSDC(
         uint _maxFee,
         uint _amount,
         address _upperHint,
-        address _lowerHint,
-        uint _backedAmount
+        address _lowerHint
     ) external;
 
-    function repayBUSDC(uint _amount, address _upperHint, address _lowerHint, uint _backedAmount) external;
+    function repayBUSDC(uint _amount, address _upperHint, address _lowerHint) external;
 
     function closeTrove() external;
 

@@ -256,10 +256,9 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, IBorrowerOpe
     function withdrawColl(
         uint _collWithdrawal,
         address _upperHint,
-        address _lowerHint,
-        uint _backedAmount
+        address _lowerHint
     ) external override {
-        _adjustTrove(msg.sender, _collWithdrawal, 0, false, _upperHint, _lowerHint, 0, _backedAmount);
+        _adjustTrove(msg.sender, _collWithdrawal, 0, false, _upperHint, _lowerHint, 0, 0);
     }
 
     // Withdraw BUSDC tokens from a trove: mint new BUSDC tokens to the owner, and increase the trove's debt accordingly
@@ -267,15 +266,14 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, IBorrowerOpe
         uint _maxFeePercentage,
         uint _BUSDCamount,
         address _upperHint,
-        address _lowerHint,
-        uint _backedAmount
+        address _lowerHint
     ) external override {
-        _adjustTrove(msg.sender, 0, _BUSDCamount, true, _upperHint, _lowerHint, _maxFeePercentage, _backedAmount);
+        _adjustTrove(msg.sender, 0, _BUSDCamount, true, _upperHint, _lowerHint, _maxFeePercentage, 0);
     }
 
     // Repay BUSDC tokens to a Trove: Burn the repaid BUSDC tokens, and reduce the trove's debt accordingly
-    function repayBUSDC(uint _BUSDCamount, address _upperHint, address _lowerHint, uint _backedAmount) external override {
-        _adjustTrove(msg.sender, 0, _BUSDCamount, false, _upperHint, _lowerHint, 0, _backedAmount);
+    function repayBUSDC(uint _BUSDCamount, address _upperHint, address _lowerHint) external override {
+        _adjustTrove(msg.sender, 0, _BUSDCamount, false, _upperHint, _lowerHint, 0, 0);
     }
 
     function adjustTrove(
