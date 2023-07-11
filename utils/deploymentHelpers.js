@@ -18,7 +18,6 @@ const CommunityIssuance = artifacts.require("./CommunityIssuance.sol")
 const SanctionsListMock = artifacts.require("./SanctionsListMock.sol")
 const BackedFactory = artifacts.require("./BackedFactory.sol")
 const BackedToken = artifacts.require("./BackedTokenImplementation.sol")
-const StableMintController = artifacts.require("./StableMintController.sol")
 
 const Unipool =  artifacts.require("./Unipool.sol")
 
@@ -31,6 +30,7 @@ const LiquityMathTester = artifacts.require("./LiquityMathTester.sol")
 const BorrowerOperationsTester = artifacts.require("./BorrowerOperationsTester.sol")
 const TroveManagerTester = artifacts.require("./TroveManagerTester.sol")
 const BUSDCTokenTester = artifacts.require("./BUSDCTokenTester.sol")
+const StableMintControllerTester = artifacts.require("./StableMintControllerTester.sol")
 
 // Proxy scripts
 const BorrowerOperationsScript = artifacts.require('BorrowerOperationsScript')
@@ -116,7 +116,7 @@ class DeploymentHelper {
     const tx = await backedFactory.deployToken("Backed IB01", "IB01", owner, owner, owner, owner, sanctionsListMock.address)
     const backedToken = await BackedToken.at(tx.logs[2].args.newToken)
     await backedToken.mint(owner, dec(10000, 'ether'), {from: owner})
-    const stableMintController = await StableMintController.new()
+    const stableMintControllerTester = await StableMintControllerTester.new()
 
     BUSDCToken.setAsDeployed(busdcToken)
     DefaultPool.setAsDeployed(defaultPool)
@@ -131,7 +131,7 @@ class DeploymentHelper {
     BorrowerOperations.setAsDeployed(borrowerOperations)
     HintHelpers.setAsDeployed(hintHelpers)
     SanctionsListMock.setAsDeployed(sanctionsListMock)
-    StableMintController.setAsDeployed(stableMintController)
+    StableMintControllerTester.setAsDeployed(stableMintControllerTester)
     BackedFactory.setAsDeployed(backedFactory)
     BackedToken.setAsDeployed(backedToken)
 
@@ -149,7 +149,7 @@ class DeploymentHelper {
       borrowerOperations,
       hintHelpers,
       backedToken,
-      stableMintController,
+      stableMintControllerTester,
     }
     return coreContracts
   }
@@ -373,7 +373,7 @@ class DeploymentHelper {
       contracts.sortedTroves.address,
       B2BContracts.b2bToken.address,
       B2BContracts.b2bStaking.address,
-      contracts.stableMintController.address,
+      contracts.stableMintControllerTester.address,
     )
 
     // set contracts in BorrowerOperations
@@ -389,7 +389,7 @@ class DeploymentHelper {
       contracts.busdcToken.address,
       B2BContracts.b2bStaking.address,
       contracts.backedToken.address,
-      contracts.stableMintController.address,
+      contracts.stableMintControllerTester.address,
     )
 
     // set contracts in the Pools
@@ -402,7 +402,7 @@ class DeploymentHelper {
       contracts.priceFeedTestnet.address,
       B2BContracts.communityIssuance.address,
       contracts.backedToken.address,
-      contracts.stableMintController.address,
+      contracts.stableMintControllerTester.address,
     )
 
     await contracts.activePool.setAddresses(
@@ -432,7 +432,7 @@ class DeploymentHelper {
       contracts.troveManager.address
     )
 
-    await contracts.stableMintController.setAddresses(
+    await contracts.stableMintControllerTester.setAddresses(
       contracts.troveManager.address,
       contracts.stabilityPool.address,
       contracts.borrowerOperations.address,
