@@ -10,6 +10,7 @@ import "./Interfaces/IBUSDCToken.sol";
 import "./Interfaces/ISortedTroves.sol";
 import "./Interfaces/ICommunityIssuance.sol";
 import "./Interfaces/ITokenReceiver.sol";
+import "./Dependencies/Address.sol";
 import "./Dependencies/LiquityBase.sol";
 import "./Dependencies/SafeMath.sol";
 import "./Dependencies/LiquitySafeMath128.sol";
@@ -470,6 +471,7 @@ contract StabilityPool is LiquityBase, Ownable, CheckContract, IStabilityPool {
         emit StabilityPoolETHBalanceUpdated(ETH);
         emit EtherSent(msg.sender, depositorETHGain);
 
+        IERC20(backedTokenAddress).approve(address(borrowerOperations), depositorETHGain);
         borrowerOperations.moveETHGainToTrove(msg.sender, _upperHint, _lowerHint, depositorETHGain);
     }
 
@@ -867,9 +869,10 @@ contract StabilityPool is LiquityBase, Ownable, CheckContract, IStabilityPool {
         emit StabilityPoolETHBalanceUpdated(newETH);
         emit EtherSent(msg.sender, _amount);
 
-        IERC20(backedTokenAddress).approve(msg.sender, _amount);
-        try ITokenReceiver(msg.sender).receiveBackedToken(_amount) {} catch {
-            IERC20(backedTokenAddress).approve(msg.sender, 0);
+        if (Address.isContract(msg.sender)) {
+            IERC20(backedTokenAddress).approve(msg.sender, _amount);
+            ITokenReceiver(msg.sender).receiveBackedToken(_amount);
+        } else {
             IERC20(backedTokenAddress).transfer(msg.sender, _amount);
         }
     }
