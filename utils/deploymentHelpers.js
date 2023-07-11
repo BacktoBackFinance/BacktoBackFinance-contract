@@ -154,8 +154,13 @@ class DeploymentHelper {
     return coreContracts
   }
 
-  static async deployTesterContractsHardhat() {
+  static async deployTesterContractsHardhat(owner) {
     const testerContracts = {}
+
+    const sanctionsListMock = await SanctionsListMock.new()
+    const backedFactory = await BackedFactory.new(owner)
+    const tx = await backedFactory.deployToken("Backed IB01", "IB01", owner, owner, owner, owner, sanctionsListMock.address)
+    const backedToken = await BackedToken.at(tx.logs[2].args.newToken)
 
     // Contract without testers (yet)
     testerContracts.priceFeedTestnet = await PriceFeedTestnet.new()
@@ -177,6 +182,8 @@ class DeploymentHelper {
       testerContracts.stabilityPool.address,
       testerContracts.borrowerOperations.address
     )
+    testerContracts.stableMintControllerTester = await StableMintControllerTester.new()
+    testerContracts.backedToken = backedToken
     return testerContracts
   }
 
@@ -321,7 +328,8 @@ class DeploymentHelper {
     const borrowerWrappersScript = await BorrowerWrappersScript.new(
       contracts.borrowerOperations.address,
       contracts.troveManager.address,
-      B2BContracts.b2bStaking.address
+      B2BContracts.b2bStaking.address,
+      contracts.backedToken.address,
     )
     contracts.borrowerWrappers = new BorrowerWrappersProxy(owner, proxies, borrowerWrappersScript.address)
 
