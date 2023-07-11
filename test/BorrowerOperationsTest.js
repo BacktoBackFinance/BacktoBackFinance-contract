@@ -109,7 +109,7 @@ contract('BorrowerOperations', async accounts => {
       await contracts.backedToken.mint(dennis, dec(10000000000, 'ether'))
 
       await contracts.backedToken.mint(A, dec(10000000000, '30'))
-      await contracts.backedToken.mint(B, dec(10000000000, 'ether'))
+      await contracts.backedToken.mint(B, dec(10000000000, '30'))
       await contracts.backedToken.mint(C, dec(10000000000, '30'))
       await contracts.backedToken.mint(D, dec(10000000000, 'ether'))
       await contracts.backedToken.mint(E, dec(10000000000, 'ether'))
@@ -1572,6 +1572,7 @@ contract('BorrowerOperations', async accounts => {
       await borrowerOperations.adjustTrove(1, 0, dec(1, 9), true, A, A, dec(30000, 18), { from: A })
       await priceFeed.setPrice(dec(1, 16))
       assert.isTrue(await th.checkRecoveryMode(contracts))
+      await contracts.backedToken.approve(borrowerOperations.address, dec(3000000, 18), { from: A });
       await borrowerOperations.adjustTrove('4999999999999999', 0, dec(1, 9), true, A, A, dec(3000000, 18), { from: A })
     })
 
@@ -1979,6 +1980,7 @@ contract('BorrowerOperations', async accounts => {
       await openTrove({ extraBUSDCAmount: toBN(dec(20000, 18)), ICR: toBN(dec(2, 18)), extraParams: { from: bob } })
 
       // Alice coll and debt increase(+1 ETH, +50BUSDC)
+      await contracts.backedToken.approve(borrowerOperations.address, dec(1, 'ether'), { from: alice })
       await borrowerOperations.adjustTrove(th._100pct, 0, dec(50, 18), true, alice, alice, dec(1, 'ether'), { from: alice })
 
       try {
@@ -2347,6 +2349,7 @@ contract('BorrowerOperations', async accounts => {
       assert.isTrue(collBefore.gt(toBN('0')))
 
       // Alice adjusts trove. Coll and debt increase(+1 ETH, +50BUSDC)
+      await contracts.backedToken.approve(borrowerOperations.address, dec(1, 'ether'), { from: alice })
       await borrowerOperations.adjustTrove(th._100pct, 0, await getNetBorrowingAmount(dec(50, 18)), true, alice, alice, dec(1, 'ether'), { from: alice })
 
       const debtAfter = await getTroveEntireDebt(alice)
