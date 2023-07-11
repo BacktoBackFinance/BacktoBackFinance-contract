@@ -9,6 +9,7 @@ import "./Interfaces/IBUSDCToken.sol";
 import "./Interfaces/ICollSurplusPool.sol";
 import "./Interfaces/ISortedTroves.sol";
 import "./Interfaces/IB2BStaking.sol";
+import "./Dependencies/Address.sol";
 import "./Dependencies/LiquityBase.sol";
 import "./Dependencies/Ownable.sol";
 import "./Dependencies/CheckContract.sol";
@@ -540,9 +541,10 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, IBorrowerOpe
     // Send ETH to Active Pool and increase its recorded ETH balance
     function _activePoolAddColl(IActivePool _activePool, uint _amount) internal {
         address _activePoolAddress = address(_activePool);
-        IERC20(backedTokenAddress).approve(_activePoolAddress, _amount);
-        try ITokenReceiver(_activePoolAddress).receiveBackedToken(_amount) {} catch {
-            IERC20(backedTokenAddress).approve(_activePoolAddress, 0);
+        if (Address.isContract(_activePoolAddress)) {
+            IERC20(backedTokenAddress).approve(_activePoolAddress, _amount);
+            ITokenReceiver(_activePoolAddress).receiveBackedToken(_amount);
+        } else {
             IERC20(backedTokenAddress).transfer(_activePoolAddress, _amount);
         }
     }
