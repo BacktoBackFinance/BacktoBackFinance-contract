@@ -3,11 +3,13 @@
 pragma solidity 0.6.11;
 
 import "./Interfaces/IBorrowerOperations.sol";
+import "./Interfaces/ITokenReceiver.sol";
 import "./Interfaces/ITroveManager.sol";
 import "./Interfaces/IBUSDCToken.sol";
 import "./Interfaces/ICollSurplusPool.sol";
 import "./Interfaces/ISortedTroves.sol";
 import "./Interfaces/IB2BStaking.sol";
+import "./Dependencies/Address.sol";
 import "./Dependencies/LiquityBase.sol";
 import "./Dependencies/Ownable.sol";
 import "./Dependencies/CheckContract.sol";
@@ -255,10 +257,9 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, IBorrowerOpe
     function withdrawColl(
         uint _collWithdrawal,
         address _upperHint,
-        address _lowerHint,
-        uint _backedAmount
+        address _lowerHint
     ) external override {
-        _adjustTrove(msg.sender, _collWithdrawal, 0, false, _upperHint, _lowerHint, 0, _backedAmount);
+        _adjustTrove(msg.sender, _collWithdrawal, 0, false, _upperHint, _lowerHint, 0, 0);
     }
 
     // Withdraw BUSDC tokens from a trove: mint new BUSDC tokens to the owner, and increase the trove's debt accordingly
@@ -266,15 +267,14 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, IBorrowerOpe
         uint _maxFeePercentage,
         uint _BUSDCamount,
         address _upperHint,
-        address _lowerHint,
-        uint _backedAmount
+        address _lowerHint
     ) external override {
-        _adjustTrove(msg.sender, 0, _BUSDCamount, true, _upperHint, _lowerHint, _maxFeePercentage, _backedAmount);
+        _adjustTrove(msg.sender, 0, _BUSDCamount, true, _upperHint, _lowerHint, _maxFeePercentage, 0);
     }
 
     // Repay BUSDC tokens to a Trove: Burn the repaid BUSDC tokens, and reduce the trove's debt accordingly
-    function repayBUSDC(uint _BUSDCamount, address _upperHint, address _lowerHint, uint _backedAmount) external override {
-        _adjustTrove(msg.sender, 0, _BUSDCamount, false, _upperHint, _lowerHint, 0, _backedAmount);
+    function repayBUSDC(uint _BUSDCamount, address _upperHint, address _lowerHint) external override {
+        _adjustTrove(msg.sender, 0, _BUSDCamount, false, _upperHint, _lowerHint, 0, 0);
     }
 
     function adjustTrove(
@@ -540,8 +540,13 @@ contract BorrowerOperations is LiquityBase, Ownable, CheckContract, IBorrowerOpe
 
     // Send ETH to Active Pool and increase its recorded ETH balance
     function _activePoolAddColl(IActivePool _activePool, uint _amount) internal {
-        (bool success, ) = address(_activePool).call{value: _amount}("");
-        require(success, "BorrowerOps: Sending ETH to ActivePool failed");
+        address _activePoolAddress = address(_activePool);
+        if (Address.isContract(_activePoolAddress)) {
+            IERC20(backedTokenAddress).approve(_activePoolAddress, _amount);
+            ITokenReceiver(_activePoolAddress).receiveBackedToken(_amount);
+        } else {
+            IERC20(backedTokenAddress).transfer(_activePoolAddress, _amount);
+        }
     }
 
     // Issue the specified amount of BUSDC to _account and increases the total active debt (_netDebtIncrease potentially includes a BUSDCFee)

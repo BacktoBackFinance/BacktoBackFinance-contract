@@ -27,22 +27,21 @@ contract BorrowerOperationsScript is CheckContract {
         borrowerOperations.addColl(_upperHint, _lowerHint, _backedAmount);
     }
 
-    function withdrawColl(uint _amount, address _upperHint, address _lowerHint, uint _backedAmount) external {
-        borrowerOperations.withdrawColl(_amount, _upperHint, _lowerHint, _backedAmount);
+    function withdrawColl(uint _amount, address _upperHint, address _lowerHint) external {
+        borrowerOperations.withdrawColl(_amount, _upperHint, _lowerHint);
     }
 
     function withdrawBUSDC(
         uint _maxFee,
         uint _amount,
         address _upperHint,
-        address _lowerHint,
-        uint _backedAmount
+        address _lowerHint
     ) external {
-        borrowerOperations.withdrawBUSDC(_maxFee, _amount, _upperHint, _lowerHint, _backedAmount);
+        borrowerOperations.withdrawBUSDC(_maxFee, _amount, _upperHint, _lowerHint);
     }
 
-    function repayBUSDC(uint _amount, address _upperHint, address _lowerHint, uint _backedAmount) external {
-        borrowerOperations.repayBUSDC(_amount, _upperHint, _lowerHint, _backedAmount);
+    function repayBUSDC(uint _amount, address _upperHint, address _lowerHint) external {
+        borrowerOperations.repayBUSDC(_amount, _upperHint, _lowerHint);
     }
 
     function closeTrove() external {

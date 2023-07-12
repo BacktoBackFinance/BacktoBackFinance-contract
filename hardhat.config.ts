@@ -4,6 +4,7 @@ import 'hardhat-abi-exporter';
 import 'hardhat-gas-reporter';
 import 'hardhat-deploy';
 import '@nomicfoundation/hardhat-toolbox';
+import "@nomiclabs/hardhat-truffle5";
 import '@openzeppelin/hardhat-upgrades';
 import { HardhatUserConfig } from 'hardhat/config';
 import { NetworkUserConfig } from 'hardhat/types';
@@ -18,6 +19,9 @@ const chainIds = {
 // Ensure that we have all the environment variables we need.
 const privateKey: string = process.env.PRIVATE_KEY || '';
 const infuraKey: string = process.env.INFURA_KEY || '';
+
+const accounts = require("./hardhatAccountsList2k.js");
+const accountsList = accounts.accountsList
 
 function createTestnetConfig(network: keyof typeof chainIds): NetworkUserConfig {
   if (!infuraKey) {
@@ -116,6 +120,7 @@ config.networks = {
     gas: 'auto',
     gasPrice: 'auto',
     allowUnlimitedContractSize: true,
+    accounts: accountsList,
   },
 };
 

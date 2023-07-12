@@ -2,12 +2,12 @@
 
 pragma solidity 0.6.11;
 
-import "./Dependencies/IStableMintController.sol";
-import "./Dependencies/LiquityMath.sol";
-import "./Dependencies/Ownable.sol";
-import "./Dependencies/SafeMath.sol";
+import "../Dependencies/IStableMintController.sol";
+import "../Dependencies/LiquityMath.sol";
+import "../Dependencies/Ownable.sol";
+import "../Dependencies/SafeMath.sol";
 
-contract StableMintController is Ownable, IStableMintController {
+contract StableMintControllerTester is Ownable, IStableMintController {
     using SafeMath for uint256;
 
     uint256 constant public DECIMAL_PRECISION = 1e18;
@@ -34,12 +34,6 @@ contract StableMintController is Ownable, IStableMintController {
         uint256 _initMintCapsOfEthBO,
         uint256 _initMintCapsOfBackedBO
     ) external override onlyOwner {
-        require(_troveManagerAddress != address(0), "_troveManagerAddress is zero address");
-        require(_stabilityPoolAddress != address(0), "stabilityPoolAddress is zero address");
-        require(_ethBoAddress != address(0), "_ethBoAddress is zero address");
-        require(_backedBoAddress != address(0), "_backedBoAddress is zero address");
-        require(_ethBoAddress != _backedBoAddress, "bo address should be different");
-
         troveManagerAddress = _troveManagerAddress;
         stabilityPoolAddress = _stabilityPoolAddress;
         ethBoAddress = _ethBoAddress;
@@ -60,32 +54,8 @@ contract StableMintController is Ownable, IStableMintController {
         totalSupplys[borrowerOperations] = totalSupplys[borrowerOperations].sub(amount);
     }
 
-    function availableAmount(address borrowerOperations) public override view returns (uint256) {
-        if (borrowerOperations != ethBoAddress && borrowerOperations != backedBoAddress) {
-            return 0;
-        }
-
-        uint256 amount1 = 0;
-        uint256 amount2 = 0;
-        if (borrowerOperations == ethBoAddress) {
-            if (initMintCaps[ethBoAddress] > totalSupplys[ethBoAddress]) {
-                amount1 = initMintCaps[ethBoAddress] - totalSupplys[ethBoAddress];
-            }
-            uint256 _amount2 = totalSupplys[backedBoAddress].mul(ETH_RATIO).div(BACKED_RATIO).mul(ADJUST_RATIO).div(DECIMAL_PRECISION);
-            if (_amount2 > totalSupplys[ethBoAddress]) {
-                amount2 = _amount2 - totalSupplys[ethBoAddress];
-            }
-        } else {
-            if (initMintCaps[backedBoAddress] > totalSupplys[backedBoAddress]) {
-                amount1 = initMintCaps[backedBoAddress] - totalSupplys[backedBoAddress];
-            }
-            uint256 _amount2 = totalSupplys[ethBoAddress].mul(BACKED_RATIO).div(ETH_RATIO).mul(ADJUST_RATIO).div(DECIMAL_PRECISION);
-            if (_amount2 > totalSupplys[backedBoAddress]) {
-                amount2 = _amount2 - totalSupplys[backedBoAddress];
-            }
-        }
-
-        return LiquityMath._max(amount1, amount2);
+    function availableAmount(address) public override view returns (uint256) {
+        return uint256(-1);
     }
 
     function _requireCallerIsBOorTroveMorSP() internal view {

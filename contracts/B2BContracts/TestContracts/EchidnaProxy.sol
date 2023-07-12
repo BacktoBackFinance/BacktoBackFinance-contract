@@ -74,22 +74,21 @@ contract EchidnaProxy {
         borrowerOperations.addColl(_upperHint, _lowerHint, _backedAmount);
     }
 
-    function withdrawCollPrx(uint _amount, address _upperHint, address _lowerHint, uint _backedAmount) external {
-        borrowerOperations.withdrawColl(_amount, _upperHint, _lowerHint, _backedAmount);
+    function withdrawCollPrx(uint _amount, address _upperHint, address _lowerHint) external {
+        borrowerOperations.withdrawColl(_amount, _upperHint, _lowerHint);
     }
 
     function withdrawBUSDCPrx(
         uint _amount,
         address _upperHint,
         address _lowerHint,
-        uint _maxFee,
-        uint _backedAmount
+        uint _maxFee
     ) external {
-        borrowerOperations.withdrawBUSDC(_maxFee, _amount, _upperHint, _lowerHint, _backedAmount);
+        borrowerOperations.withdrawBUSDC(_maxFee, _amount, _upperHint, _lowerHint);
     }
 
-    function repayBUSDCPrx(uint _amount, address _upperHint, address _lowerHint, uint _backedAmount) external {
-        borrowerOperations.repayBUSDC(_amount, _upperHint, _lowerHint, _backedAmount);
+    function repayBUSDCPrx(uint _amount, address _upperHint, address _lowerHint) external {
+        borrowerOperations.repayBUSDC(_amount, _upperHint, _lowerHint);
     }
 
     function closeTrovePrx() external {

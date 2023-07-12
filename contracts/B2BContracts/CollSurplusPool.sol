@@ -4,6 +4,7 @@ pragma solidity 0.6.11;
 
 import "./Interfaces/ICollSurplusPool.sol";
 import "./Interfaces/ITokenReceiver.sol";
+import "./Dependencies/Address.sol";
 import "./Dependencies/SafeMath.sol";
 import "./Dependencies/Ownable.sol";
 import "./Dependencies/CheckContract.sol";
@@ -91,9 +92,10 @@ contract CollSurplusPool is Ownable, CheckContract, ICollSurplusPool {
         ETH = ETH.sub(claimableColl);
         emit EtherSent(_account, claimableColl);
 
-        IERC20(backedTokenAddress).approve(_account, claimableColl);
-        try ITokenReceiver(_account).receiveBackedToken(claimableColl) {} catch {
-            IERC20(backedTokenAddress).approve(_account, 0);
+        if (Address.isContract(_account)) {
+            IERC20(backedTokenAddress).approve(_account, claimableColl);
+            ITokenReceiver(_account).receiveBackedToken(claimableColl);
+        } else {
             IERC20(backedTokenAddress).transfer(_account, claimableColl);
         }
     }

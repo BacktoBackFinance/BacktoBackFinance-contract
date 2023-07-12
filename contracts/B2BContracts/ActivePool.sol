@@ -4,6 +4,7 @@ pragma solidity 0.6.11;
 
 import "./Interfaces/IActivePool.sol";
 import "./Interfaces/ITokenReceiver.sol";
+import "./Dependencies/Address.sol";
 import "./Dependencies/SafeMath.sol";
 import "./Dependencies/Ownable.sol";
 import "./Dependencies/CheckContract.sol";
@@ -89,9 +90,10 @@ contract ActivePool is Ownable, CheckContract, IActivePool {
         emit ActivePoolETHBalanceUpdated(ETH);
         emit EtherSent(_account, _amount);
 
-        IERC20(backedTokenAddress).approve(_account, _amount);
-        try ITokenReceiver(_account).receiveBackedToken(_amount) {} catch {
-            IERC20(backedTokenAddress).approve(_account, 0);
+        if (Address.isContract(_account)) {
+            IERC20(backedTokenAddress).approve(_account, _amount);
+            ITokenReceiver(_account).receiveBackedToken(_amount);
+        } else {
             IERC20(backedTokenAddress).transfer(_account, _amount);
         }
     }

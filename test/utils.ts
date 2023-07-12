@@ -1,18 +1,7 @@
 import { expect } from 'chai'
-import { ethers, upgrades } from 'hardhat';
-import { time, loadFixture } from "@nomicfoundation/hardhat-network-helpers";
-import { anyValue } from "@nomicfoundation/hardhat-chai-matchers/withArgs";
+import { ethers } from 'hardhat';
 
-import { BackedVault__factory } from '../typechain/factories/contracts/BackedVault__factory';
-import { BackedSwap__factory } from '../typechain/factories/contracts/BackedSwap.sol/BackedSwap__factory';
-import { BackedFactory__factory} from '../typechain/factories/contracts/BackedFactory/BackedFactory.sol/BackedFactory__factory';
-import { BackedOracle__factory} from '../typechain/factories/contracts/BackedFactory/BackedOracle.sol/BackedOracle__factory';
-import { MockUSDC__factory} from '../typechain/factories/contracts/BackedFactory/Mocks/StableCoinUSDCMock.sol/MockUSDC__factory';
-import { SanctionsListMock__factory} from '../typechain/factories/contracts/BackedFactory/Mocks/SanctionsListMock__factory';
-import { BackedTokenImplementation__factory} from '../typechain/factories/contracts/BackedFactory/BackedTokenImplementation__factory';
-
-
-const { provider, BigNumber } = ethers;
+const { BigNumber } = ethers;
 
 export const ONE_DAY_IN_SECS = 24 * 60 * 60;
 
@@ -20,28 +9,22 @@ export async function deployPoolContractsFixture() {
   const  [Alice, Bob, Caro, Dave]  = await ethers.getSigners();
 
   const MockUSDC = await ethers.getContractFactory('MockUSDC');
-  const MockUSDCContract = await MockUSDC.deploy();
-  const mockUSDC = MockUSDC__factory.connect(MockUSDCContract.address, provider);
+  const mockUSDC = await MockUSDC.deploy();
 
   const SanctionsListMock = await ethers.getContractFactory('SanctionsListMock');
-  const SanctionsListMockContract = await SanctionsListMock.deploy();
-  const sanctionsListMock = SanctionsListMock__factory.connect(SanctionsListMockContract.address, provider);
+  const sanctionsListMock = await SanctionsListMock.deploy();
 
   const BackedOracle = await ethers.getContractFactory('BackedOracle');
-  const BackedOracleContract = await BackedOracle.deploy(8, "bIB01 Price Feed");
-  const backedOracle = BackedOracle__factory.connect(BackedOracleContract.address, provider);
+  const backedOracle = await BackedOracle.deploy(8, "bIB01 Price Feed");
 
   const BackedFactory = await ethers.getContractFactory('BackedFactory');
-  const BackedFactoryContract = await BackedFactory.deploy(Alice.address);
-  const backedFactory = BackedFactory__factory.connect(BackedFactoryContract.address, provider);
+  const backedFactory = await BackedFactory.deploy(Alice.address);
 
   const BackedVault = await ethers.getContractFactory('BackedVault');
-  const BackedVaultContract = await BackedVault.deploy();
-  const backedVault = BackedVault__factory.connect(BackedVaultContract.address, provider);
+  const backedVault = await BackedVault.deploy();
 
   const BackedSwap = await ethers.getContractFactory('BackedSwap');
-  const BackedSwapContract = await BackedSwap.deploy();
-  const backedSwap  = BackedSwap__factory.connect(BackedSwapContract.address, provider);
+  const backedSwap = await BackedSwap.deploy();
 
   return { mockUSDC, sanctionsListMock, backedOracle, backedFactory, backedSwap, backedVault, Alice, Bob, Caro, Dave };
 }
