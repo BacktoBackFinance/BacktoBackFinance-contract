@@ -1,0 +1,41 @@
+{
+  "address": "0x1e9790E05819a33E6B3B5A51975bDf112AC7d177",
+  "abi": [],
+  "transactionHash": "0xc99c97a5986d48d46869de84004cf086fcedde89f0b1fd36687a643423bdd4fa",
+  "receipt": {
+    "to": null,
+    "from": "0x6D2e19D49DCa81f20CA9f339B0e931a79d76A5E9",
+    "contractAddress": "0x1e9790E05819a33E6B3B5A51975bDf112AC7d177",
+    "transactionIndex": 14,
+    "gasUsed": "67072",
+    "logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+    "blockHash": "0x410bb1144980817d25ef5cbf15067839417e34b367847b7c54f3f75373790de4",
+    "transactionHash": "0xc99c97a5986d48d46869de84004cf086fcedde89f0b1fd36687a643423bdd4fa",
+    "logs": [],
+    "blockNumber": 3895997,
+    "cumulativeGasUsed": "8105396",
+    "status": 1,
+    "byzantium": true
+  },
+  "args": [],
+  "numDeployments": 1,
+  "solcInputHash": "18508ab469106970bdcb4e830f974b4f",
+  "metadata": "{\"compiler\":{\"version\":\"0.6.11+commit.5ef660b1\"},\"language\":\"Solidity\",\"output\":{\"abi\":[],\"devdoc\":{\"kind\":\"dev\",\"methods\":{},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{},\"notice\":\"The purpose of this contract is to hold BUSDC tokens for gas compensation: https://github.com/liquity/dev#gas-compensation When a borrower opens a trove, an additional 50 BUSDC debt is issued, and 50 BUSDC is minted and sent to this contract. When a borrower closes their active trove, this gas compensation is refunded: 50 BUSDC is burned from the this contract's balance, and the corresponding 50 BUSDC debt on the trove is cancelled. See this issue for more context: https://github.com/liquity/dev/issues/186\",\"version\":1}},\"settings\":{\"compilationTarget\":{\"contracts/B2BContracts/GasPool.sol\":\"GasPool\"},\"evmVersion\":\"istanbul\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\",\"useLiteralContent\":true},\"optimizer\":{\"enabled\":true,\"runs\":100},\"remappings\":[]},\"sources\":{\"contracts/B2BContracts/GasPool.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n\\npragma solidity 0.6.11;\\n\\n\\n/**\\n * The purpose of this contract is to hold BUSDC tokens for gas compensation:\\n * https://github.com/liquity/dev#gas-compensation\\n * When a borrower opens a trove, an additional 50 BUSDC debt is issued,\\n * and 50 BUSDC is minted and sent to this contract.\\n * When a borrower closes their active trove, this gas compensation is refunded:\\n * 50 BUSDC is burned from the this contract's balance, and the corresponding\\n * 50 BUSDC debt on the trove is cancelled.\\n * See this issue for more context: https://github.com/liquity/dev/issues/186\\n */\\ncontract GasPool {\\n    // do nothing, as the core contracts have permission to send to and burn from this address\\n}\\n\",\"keccak256\":\"0x86b14c79d22bff20d02b2a654ae8aaf8718fd4343edf515ab2bb4ef73f59b783\",\"license\":\"MIT\"}},\"version\":1}",
+  "bytecode": "0x6080604052348015600f57600080fd5b50603f80601d6000396000f3fe6080604052600080fdfea26469706673582212202eb85c83b878cf7b68cf1a1b5b5d1589b135fdf653e72f9da9c3874c66cf113564736f6c634300060b0033",
+  "deployedBytecode": "0x6080604052600080fdfea26469706673582212202eb85c83b878cf7b68cf1a1b5b5d1589b135fdf653e72f9da9c3874c66cf113564736f6c634300060b0033",
+  "devdoc": {
+    "kind": "dev",
+    "methods": {},
+    "version": 1
+  },
+  "userdoc": {
+    "kind": "user",
+    "methods": {},
+    "notice": "The purpose of this contract is to hold BUSDC tokens for gas compensation: https://github.com/liquity/dev#gas-compensation When a borrower opens a trove, an additional 50 BUSDC debt is issued, and 50 BUSDC is minted and sent to this contract. When a borrower closes their active trove, this gas compensation is refunded: 50 BUSDC is burned from the this contract's balance, and the corresponding 50 BUSDC debt on the trove is cancelled. See this issue for more context: https://github.com/liquity/dev/issues/186",
+    "version": 1
+  },
+  "storageLayout": {
+    "storage": [],
+    "types": null
+  }
+}

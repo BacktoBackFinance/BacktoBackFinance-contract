@@ -1,0 +1,95 @@
+{
+  "address": "0x101a3F49a6F5D3aEFA15818EcE12c81b223574F0",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_aggregator",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "inputs": [],
+      "name": "aggregator",
+      "outputs": [
+        {
+          "internalType": "contract AggregatorInterface",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "fetchPrice",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "transactionHash": "0x9cf19b4d561d435f4e8e250fd18d61286e6b839f16f8a351bb6667580c70db13",
+  "receipt": {
+    "to": null,
+    "from": "0x6D2e19D49DCa81f20CA9f339B0e931a79d76A5E9",
+    "contractAddress": "0x101a3F49a6F5D3aEFA15818EcE12c81b223574F0",
+    "transactionIndex": 20,
+    "gasUsed": "154341",
+    "logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+    "blockHash": "0x583cc5acd144135373385ac53f53885621c666d53d76a7fd2f156b595983fc94",
+    "transactionHash": "0x9cf19b4d561d435f4e8e250fd18d61286e6b839f16f8a351bb6667580c70db13",
+    "logs": [],
+    "blockNumber": 3891585,
+    "cumulativeGasUsed": "2380532",
+    "status": 1,
+    "byzantium": true
+  },
+  "args": [
+    "0xD9671514C8A2D28e3dc5836B50707852DB40eE92"
+  ],
+  "numDeployments": 1,
+  "solcInputHash": "42fc755ad7706d16e8dad045c46f455b",
+  "metadata": "{\"compiler\":{\"version\":\"0.8.9+commit.e5eed63a\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_aggregator\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"inputs\":[],\"name\":\"aggregator\",\"outputs\":[{\"internalType\":\"contract AggregatorInterface\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"fetchPrice\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{},\"version\":1}},\"settings\":{\"compilationTarget\":{\"contracts/BackedOracleProxy.sol\":\"BackedOracleProxy\"},\"evmVersion\":\"london\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\",\"useLiteralContent\":true},\"optimizer\":{\"enabled\":true,\"runs\":200},\"remappings\":[]},\"sources\":{\"contracts/BackedOracleProxy.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n\\npragma solidity ^0.8.0;\\n\\ninterface AggregatorInterface {\\n    function latestAnswer() external view returns (int256);\\n}\\n\\ninterface PriceFeedInterface {\\n    function fetchPrice() external view returns (uint256);\\n}\\n\\ncontract BackedOracleProxy is PriceFeedInterface {\\n    AggregatorInterface public aggregator;\\n\\n    constructor(address _aggregator) {\\n        require(_aggregator != address(0), \\\"_aggregator is zero address\\\");\\n\\n        aggregator = AggregatorInterface(_aggregator);\\n    }\\n\\n    function fetchPrice() external view override returns (uint256) {\\n        return uint256(aggregator.latestAnswer());\\n    }\\n}\\n\",\"keccak256\":\"0xb28ead3eeafbfa6d6f93f110d23967e3bf29ab3695261befb250a0c017728df3\",\"license\":\"MIT\"}},\"version\":1}",
+  "bytecode": "0x608060405234801561001057600080fd5b5060405161024938038061024983398101604081905261002f916100ae565b6001600160a01b0381166100895760405162461bcd60e51b815260206004820152601b60248201527f5f61676772656761746f72206973207a65726f20616464726573730000000000604482015260640160405180910390fd5b600080546001600160a01b0319166001600160a01b03929092169190911790556100de565b6000602082840312156100c057600080fd5b81516001600160a01b03811681146100d757600080fd5b9392505050565b61015c806100ed6000396000f3fe608060405234801561001057600080fd5b50600436106100365760003560e01c80630fdb11cf1461003b578063245a7bfc14610056575b600080fd5b610043610081565b6040519081526020015b60405180910390f35b600054610069906001600160a01b031681565b6040516001600160a01b03909116815260200161004d565b60008060009054906101000a90046001600160a01b03166001600160a01b03166350d25bcd6040518163ffffffff1660e01b815260040160206040518083038186803b1580156100d057600080fd5b505afa1580156100e4573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610108919061010d565b905090565b60006020828403121561011f57600080fd5b505191905056fea264697066735822122027ed9bd3d1954a34f2235422a635c53b09095471e0d16376fb28ac572247972c64736f6c63430008090033",
+  "deployedBytecode": "0x608060405234801561001057600080fd5b50600436106100365760003560e01c80630fdb11cf1461003b578063245a7bfc14610056575b600080fd5b610043610081565b6040519081526020015b60405180910390f35b600054610069906001600160a01b031681565b6040516001600160a01b03909116815260200161004d565b60008060009054906101000a90046001600160a01b03166001600160a01b03166350d25bcd6040518163ffffffff1660e01b815260040160206040518083038186803b1580156100d057600080fd5b505afa1580156100e4573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610108919061010d565b905090565b60006020828403121561011f57600080fd5b505191905056fea264697066735822122027ed9bd3d1954a34f2235422a635c53b09095471e0d16376fb28ac572247972c64736f6c63430008090033",
+  "devdoc": {
+    "kind": "dev",
+    "methods": {},
+    "version": 1
+  },
+  "userdoc": {
+    "kind": "user",
+    "methods": {},
+    "version": 1
+  },
+  "storageLayout": {
+    "storage": [
+      {
+        "astId": 7228,
+        "contract": "contracts/BackedOracleProxy.sol:BackedOracleProxy",
+        "label": "aggregator",
+        "offset": 0,
+        "slot": "0",
+        "type": "t_contract(AggregatorInterface)7217"
+      }
+    ],
+    "types": {
+      "t_contract(AggregatorInterface)7217": {
+        "encoding": "inplace",
+        "label": "contract AggregatorInterface",
+        "numberOfBytes": "20"
+      }
+    }
+  }
+}
