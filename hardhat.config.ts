@@ -14,6 +14,7 @@ const chainIds = {
   ganache: 1337,
   mainnet: 1,
   goerli: 5,
+  sepolia: 11155111,
 };
 
 // Ensure that we have all the environment variables we need.
@@ -35,6 +36,9 @@ function createTestnetConfig(network: keyof typeof chainIds): NetworkUserConfig 
       break;
     case 'goerli':
       nodeUrl = `https://goerli.infura.io/v3/${infuraKey}`;
+      break;
+    case 'sepolia':
+      nodeUrl = `https://sepolia.infura.io/v3/${infuraKey}`;
       break;
   }
 
@@ -80,6 +84,12 @@ const config: HardhatUserConfig = {
       },
       {
         version: '0.6.11',
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 100
+          }
+        }
       },
     ],
   },
@@ -110,6 +120,7 @@ if (privateKey) {
   config.networks = {
     mainnet: createTestnetConfig('mainnet'),
     goerli: createTestnetConfig('goerli'),
+    sepolia: createTestnetConfig('sepolia'),
   };
 }
 
