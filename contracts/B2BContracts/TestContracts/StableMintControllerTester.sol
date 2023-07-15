@@ -26,7 +26,7 @@ contract StableMintControllerTester is Ownable, IStableMintController {
     // total amount of minted stable token
     mapping(address => uint256) public totalSupplys;
 
-    function setAddresses(
+    function setParams(
         address _troveManagerAddress,
         address _stabilityPoolAddress,
         address _ethBoAddress,

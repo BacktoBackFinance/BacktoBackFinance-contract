@@ -172,7 +172,7 @@ const deployFunction: DeployFunction = async function ({
   if ((await StableMintControllerContract.owner()) === deployer) {
     // TODO deploy a different BorrowerOperations contract
     const borrowerOperationsAddress2 = stabilityPoolAddress;
-    const tx = await StableMintControllerContract.setAddresses(
+    const tx = await StableMintControllerContract.setParams(
       troveManagerAddress,
       stabilityPoolAddress,
       borrowerOperationsAddress,

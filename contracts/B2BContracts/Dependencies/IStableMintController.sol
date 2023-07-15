@@ -3,7 +3,7 @@
 pragma solidity 0.6.11;
 
 interface IStableMintController {
-    function setAddresses(
+    function setParams(
         address _troveManagerAddress,
         address _stabilityPoolAddress,
         address _ethBoAddress,
