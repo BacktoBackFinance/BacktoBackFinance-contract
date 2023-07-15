@@ -263,8 +263,7 @@ contract EchidnaTester {
         uint _amount,
         address _upperHint,
         address _lowerHint,
-        uint _maxFee,
-        uint _backedAmount
+        uint _maxFee
     ) external {
         uint actor = _i % NUMBER_OF_ACTORS;
         echidnaProxies[actor].withdrawBUSDCPrx(_amount, _upperHint, _lowerHint, _maxFee);
