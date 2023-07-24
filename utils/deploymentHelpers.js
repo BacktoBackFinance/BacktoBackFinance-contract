@@ -440,7 +440,7 @@ class DeploymentHelper {
       contracts.troveManager.address
     )
 
-    await contracts.stableMintControllerTester.setAddresses(
+    await contracts.stableMintControllerTester.setParams(
       contracts.troveManager.address,
       contracts.stabilityPool.address,
       contracts.borrowerOperations.address,
